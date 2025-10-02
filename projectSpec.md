@@ -11,7 +11,8 @@ Scope is limited to this artist’s pages:
   - `https://www.artfinder.com/product/let-the-sun-warm-you/`
   - `https://www.artfinder.com/product/waterside-6333/`
   - `https://www.artfinder.com/product/settled-e4dc9/`
-  - `https://www.artfinder.com/product/meditations-in-green/`
+  - `https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/` (sold)
+  - `https://www.artfinder.com/product/lyme-bay/` (sold)
 
 > Legal & considerate use: We’re scraping your client’s public listings, but we should still be polite: set low concurrency, respect caching, and identify a contact email via the User-Agent. If Artfinder’s robots/ToS restrict scraping or if they request pausing, the runner must support a quick “dry-run mode” and a domain allowlist.
 
