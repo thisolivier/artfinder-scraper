@@ -19,6 +19,12 @@ except ImportError:  # pragma: no cover - stdlib availability
 app = typer.Typer(help="Utility commands for interacting with the Artfinder scraper.")
 
 
+@app.callback()
+def cli_root() -> None:
+    """Root command group for scraper utilities."""
+
+
+
 @app.command("fetch-item")
 def fetch_item(
     url: str = typer.Argument(..., help="Artwork detail page URL to download."),
