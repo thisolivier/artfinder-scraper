@@ -21,7 +21,7 @@ Scope is limited to this artist’s pages:
 ## 1) Deliverables
 
 1. **Spreadsheet (.xlsx)** with embedded thumbnail images and columns:  
-   `title | description | price_gbp | size_raw | width_cm | height_cm | depth_cm | sold | image_path | source_url | scraped_at`
+   `title | description | price_gbp | size | sold | image_path | source_url | scraped_at`
    - Apple **Numbers** can open `.xlsx` with embedded images, so we’ll standardize on `.xlsx` for automation. (If needed, we can also export a `.csv` without embedded images.)
 2. **Images folder** with one saved image per artwork (`images/<slug>.jpg`).
 3. **A JSONL archive** (`data/artworks.jsonl`) mirroring the spreadsheet rows for re-runs/diffs.
@@ -50,10 +50,7 @@ class Artwork(BaseModel):
     title: str
     description: str
     price_gbp: Decimal | None           # numeric; strip currency symbol & commas
-    size_raw: str | None                # full “Size: 46 x 46 x 2cm (unframed) …”
-    width_cm: float | None
-    height_cm: float | None
-    depth_cm: float | None
+    size: str | None                    # full “46 x 46 x 2cm (unframed) …”
     sold: bool
     image_url: HttpUrl | None
     image_path: str | None              # local file path
@@ -66,7 +63,7 @@ class Artwork(BaseModel):
 - **Title:** From artwork page heading line like: `# A Windswept Walk (2025) Oil painting by Lizzie Butler`. Extract substring before “by Lizzie Butler”, strip year/medium if combined.
 - **Description:** Under “Original artwork description” section; join paragraphs.
 - **Price (GBP):** Monetary text near title; normalize by removing “£” and commas (e.g., “£475”).
-- **Size:** Line beginning “Size: … cm …”. Extract width/height/depth in **cm**; keep `size_raw`. If only width×height present, set `depth_cm=None`.
+- **Size:** Line beginning “Size: … cm …”. Trim `Size: ` from the final output
 - **Sold status:**  
   True if any of:
   - “This artwork is sold …” blurb present; or
@@ -88,7 +85,7 @@ class Artwork(BaseModel):
 **Detail page (`/product/<slug>/`)**:  
 - **Title:** first H1/H2 block that contains `(year)` and “by Lizzie Butler” → capture the left segment as title.  
 - **Price:** nearest currency text (e.g., “£475”) between title block and bullet list.  
-- **Size:** list item beginning with `Size:`; parse `(?P<w>\d+(?:\.\d+)?)\s*x\s*(?P<h>\d+(?:\.\d+)?)(?:\s*x\s*(?P<d>\d+(?:\.\d+)?))?\s*cm`. Unit is **cm**.  
+- **Size:** list item beginning with `Size:`; 
 - **Description:** paragraphs directly under the “Original artwork description” heading.  
 - **Sold state:** presence of “This artwork is sold …” or absence of “Add to Basket”.  
 - **Main image:** meta `og:image` (if available), else first hero `<img>` with alt containing the title.
@@ -180,7 +177,7 @@ artfinder_scraper/
     extractor.py        # parse item fields (bs4 + regex)
     downloader.py       # images with validation
     spreadsheet.py      # openpyxl embed & append
-    normalize.py        # price/size parsing utils
+    normalize.py        # price parsing utils
     models.py           # pydantic Artwork
     runner.py           # Orchestrator
     browsers.py         # Playwright driver
@@ -205,8 +202,7 @@ artfinder_scraper/
 
 - **Price:** `£2,200` → `2200.00` (Decimal). Currency fixed to GBP.
 - **Size:**
-  - Accept strings like `W x H x Dcm (unframed) / W x Hcm (actual image size)`; parse the **first** triplet/pair.
-  - If units differ (e.g., inches), convert to cm (primary expectation is **cm**).
+  - Do not attempt to normalize into isolated measurements, simply trim "Size: " from the raw string.
 - **Slug:** last path segment from `/product/<slug>/`.
 - **Image:** save as `.jpg` unless remote indicates PNG (`Content-Type`).
 
