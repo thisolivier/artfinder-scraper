@@ -21,8 +21,13 @@ app = typer.Typer(help="Utility commands for interacting with the Artfinder scra
 
 @app.command("fetch-item")
 def fetch_item(
-    url: str,
-    output: Optional[Path] = typer.Option(None, "--out", "-o", help="File to write the rendered HTML to."),
+    url: str = typer.Argument(..., help="Artwork detail page URL to download."),
+    output: Optional[Path] = typer.Option(
+        None,
+        "--out",
+        "-o",
+        help="File to write the rendered HTML to.",
+    ),
 ) -> None:
     """Fetch a single item URL and emit the rendered HTML."""
 

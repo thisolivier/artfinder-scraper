@@ -1,0 +1,25 @@
+# Scraping module
+
+The `artfinder_scraper.scraping` package bundles the components used by the
+command-line workflow to download and process Artfinder artwork pages.
+
+* `browsers.py` exposes `fetch_page_html`, a thin Playwright wrapper that
+  requests a detail page with the required user agent and politeness delay.
+* `extractor.py` parses the rendered HTML into a dictionary of raw field
+  values that higher-level flows can normalize later on.
+* `downloader.py`, `indexer.py`, `normalize.py`, `spreadsheet.py`, and
+  `runner.py` are placeholders for the upcoming pagination, normalization, and
+  orchestration layers described in the project spec.
+
+## Fetching a single artwork
+
+The root CLI script wires the browser helper and extractor together. Use the
+`fetch-item` command to download an artwork detail page, optionally save the
+HTML, and pretty-print the parsed fields:
+
+```bash
+python scrape_artfinder.py fetch-item \
+  https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/
+```
+
+Pass `--out path/to/file.html` to capture the HTML alongside the parsed output.
