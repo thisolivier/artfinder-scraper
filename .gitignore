@@ -3,6 +3,8 @@
 # dependencies
 /node_modules
 /pycache/
+__pycache__/
+venv/
 
 # next.js
 /.next/
