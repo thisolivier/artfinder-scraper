@@ -15,3 +15,7 @@ python scrape_artfinder.py fetch-item https://www.artfinder.com/product/echoes-o
 ```
 
 Pass `--out path/to/file.html` to store the rendered HTML instead of printing it to the terminal. Use `--download-image` to save the hero image to `out/images/` while reporting the stored path in the console output.
+
+## Test fixtures
+
+Tests exercise the parsing helpers with anonymized HTML fixtures. The fixtures reference fictional artist names, artwork titles, descriptions, and URLs to ensure the suite avoids real-world listings while still covering the expected extraction logic.
