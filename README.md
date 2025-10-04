@@ -65,6 +65,7 @@ Key options:
 * `--jsonl-path` – store the JSONL output somewhere other than the default project location.
 * `--rate-limit` – control the minimum delay between detail page fetches.
 * `--dry-run` – execute the crawl without downloading images or writing JSONL/Excel output.
+* `--skip-images` – persist JSONL/Excel data while skipping image downloads.
 
 The command prints a one-line summary when complete and lists any recoverable errors that were skipped along the way so you can iterate on extraction fidelity.
 

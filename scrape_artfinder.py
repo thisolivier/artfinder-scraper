@@ -107,6 +107,7 @@ def _create_runner(
     rate_limit: float,
     dry_run: bool,
     skip_slugs: Iterable[str] | None = None,
+    download_images: bool = True,
 ) -> ScraperRunner:
     return ScraperRunner(
         listing_url=listing_url,
@@ -114,6 +115,7 @@ def _create_runner(
         rate_limit_seconds=rate_limit,
         skip_slugs=skip_slugs,
         persist_outputs=not dry_run,
+        download_images=download_images,
     )
 
 
@@ -197,6 +199,12 @@ def run_pipeline(
         help="Process items without downloading images or writing JSONL/spreadsheet files.",
         is_flag=True,
     ),
+    skip_images: bool = typer.Option(
+        False,
+        "--skip-images",
+        help="Skip downloading artwork images while still writing JSONL/spreadsheet outputs.",
+        is_flag=True,
+    ),
 ) -> None:
     """Execute the end-to-end scraping pipeline for a limited number of items."""
 
@@ -206,6 +214,7 @@ def run_pipeline(
         rate_limit=rate_limit,
         dry_run=dry_run,
         skip_slugs=None,
+        download_images=not skip_images,
     )
     _execute_pipeline(runner, limit)
 
