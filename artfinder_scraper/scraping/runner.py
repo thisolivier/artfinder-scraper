@@ -12,6 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from .browsers import _fetch_page_html_async, chromium_page
 from .downloader import ArtworkImageDownloader, ImageDownloadError
@@ -58,6 +59,8 @@ class ScraperRunner:
         time_function: Callable[[], float] = time.monotonic,
         logger: logging.Logger | None = None,
         spreadsheet_writer: Callable[[Artwork, Path], bool] | None = None,
+        skip_slugs: Iterable[str] | None = None,
+        persist_outputs: bool = True,
     ) -> None:
         self.listing_url = listing_url
         self.fetch_html = fetch_html
@@ -75,6 +78,8 @@ class ScraperRunner:
         self.time_function = time_function
         self.logger = logger or logging.getLogger(__name__)
         self.spreadsheet_writer = spreadsheet_writer or append_artwork_to_spreadsheet
+        self.skip_slugs: set[str] = {slug.strip() for slug in skip_slugs or [] if slug.strip()}
+        self.persist_outputs = persist_outputs
         self.errors: list[RunnerError] = []
 
     async def crawl(self, *, max_items: int | None = None) -> list[Artwork]:
@@ -85,13 +90,19 @@ class ScraperRunner:
         processed_count = 0
         last_request_timestamp: float | None = None
 
-        self.jsonl_path.parent.mkdir(parents=True, exist_ok=True)
-        self.spreadsheet_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.persist_outputs:
+            self.jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+            self.spreadsheet_path.parent.mkdir(parents=True, exist_ok=True)
 
         async with self.page_factory() as page:
             async for product_url in self._iter_product_urls(page):
                 if max_items is not None and processed_count >= max_items:
                     break
+
+                slug = self._slug_from_product_url(product_url)
+                if slug and slug in self.skip_slugs:
+                    self.logger.info("Skipping %s (already processed)", product_url)
+                    continue
 
                 self.logger.info("Processing %s", product_url)
                 try:
@@ -108,11 +119,12 @@ class ScraperRunner:
                     self._record_error(product_url, "extract", error)
                     continue
 
-                try:
-                    artwork = self._download_artwork_image(artwork)
-                except ImageDownloadError as error:
-                    self._record_error(product_url, "download", error)
-                    continue
+                if self.persist_outputs:
+                    try:
+                        artwork = self._download_artwork_image(artwork)
+                    except ImageDownloadError as error:
+                        self._record_error(product_url, "download", error)
+                        continue
 
                 try:
                     normalized_record = self.normalizer(artwork)
@@ -121,19 +133,22 @@ class ScraperRunner:
                     self._record_error(product_url, "normalize", error)
                     continue
 
-                try:
-                    self._append_jsonl_record(json_ready_record)
-                except OSError as error:
-                    self._record_error(product_url, "persist", error)
-                    continue
+                if self.persist_outputs:
+                    try:
+                        self._append_jsonl_record(json_ready_record)
+                    except OSError as error:
+                        self._record_error(product_url, "persist", error)
+                        continue
 
-                try:
-                    self.spreadsheet_writer(artwork, self.spreadsheet_path)
-                except Exception as error:  # pragma: no cover - spreadsheet errors handled gracefully
-                    self._record_error(product_url, "spreadsheet", error)
+                    try:
+                        self.spreadsheet_writer(artwork, self.spreadsheet_path)
+                    except Exception as error:  # pragma: no cover - spreadsheet errors handled gracefully
+                        self._record_error(product_url, "spreadsheet", error)
 
                 processed_artworks.append(artwork)
                 processed_count += 1
+                if slug:
+                    self.skip_slugs.add(slug)
                 self.logger.info("Processed %s (%s total)", product_url, processed_count)
 
         return processed_artworks
@@ -200,8 +215,18 @@ class ScraperRunner:
         return value
 
     def _append_jsonl_record(self, record: Mapping[str, Any]) -> None:
+        if not self.persist_outputs:
+            return
         with self.jsonl_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    def _slug_from_product_url(self, product_url: str) -> str | None:
+        try:
+            parsed = urlparse(product_url)
+        except Exception:  # pragma: no cover - invalid URLs guarded upstream
+            return None
+        slug = parsed.path.split("/product/", 1)[-1].strip("/") if "/product/" in parsed.path else None
+        return slug or None
 
     def _record_error(self, product_url: str, stage: str, error: Exception) -> None:
         message = f"{stage} failed for {product_url}: {error}"

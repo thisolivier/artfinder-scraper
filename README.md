@@ -2,6 +2,22 @@
 
 This project will crawl every artwork listed on an example artist's Artfinder shop, capture detailed metadata from each artwork page, and produce a spreadsheet plus downloaded imagery summarizing the collection. Upcoming modules in `artfinder_scraper/scraping/` will coordinate listing pagination, extract detail page content, normalize data, download media, and assemble spreadsheet outputs backed by typed models and runnable workflows.
 
+## Environment requirements
+
+* Python 3.11 or newer.
+* Google Chrome or Microsoft Edge so Playwright can drive a Chromium browser.
+* System libraries required by Playwright (see the [Playwright installation guide](https://playwright.dev/python/docs/intro) for your operating system).
+* Project dependencies from `requirements.txt` installed inside a virtual environment:
+
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  playwright install chromium
+  ```
+
+All commands below assume the virtual environment is active so `python` resolves to the interpreter with these dependencies.
+
 ## Running parser tests
 
 The extractor uses saved HTML fixtures to verify that titles, prices, size text, sold state, images, and materials used copy are detected correctly. Execute the focused test module with:
@@ -48,8 +64,25 @@ Key options:
 * `--listing-url` – change which artist listing is crawled.
 * `--jsonl-path` – store the JSONL output somewhere other than the default project location.
 * `--rate-limit` – control the minimum delay between detail page fetches.
+* `--dry-run` – execute the crawl without downloading images or writing JSONL/Excel output.
 
 The command prints a one-line summary when complete and lists any recoverable errors that were skipped along the way so you can iterate on extraction fidelity.
+
+### Resuming a crawl
+
+Use the `resume` subcommand to continue a crawl after an interrupted run. The command inspects the JSONL archive, collects the slugs that were already processed, and skips any matching items while the spreadsheet helper continues guarding against duplicates.
+
+```bash
+python scrape_artfinder.py resume --jsonl-path artfinder_scraper/data/artworks.jsonl --rate-limit 1.5
+```
+
+Combine the resume flow with `--dry-run` to verify that the CLI loads the expected slugs without mutating the on-disk JSONL or spreadsheet files:
+
+```bash
+python scrape_artfinder.py resume --jsonl-path artfinder_scraper/data/artworks.jsonl --dry-run --limit 5
+```
+
+If the JSONL file is missing the command prints a notice and starts a fresh crawl using the configured listing URL.
 
 ## Spreadsheet export
 
