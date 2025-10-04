@@ -14,7 +14,11 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 @pytest.mark.parametrize(
     "fixture_name",
-    ["windswept_walk.html", "soft_light_sold.html"],
+    [
+        "windswept_walk.html",
+        "soft_light_sold.html",
+        "sounds_of_the_sea.html",
+    ],
 )
 def test_fixtures_exist(fixture_name: str) -> None:
     """Ensure fixtures referenced in the tests are present on disk."""
@@ -86,6 +90,24 @@ def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
     assert (
         str(artwork.source_url)
         == "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/"
+    )
+
+
+def test_extract_artwork_fields_handles_artwork_description_section() -> None:
+    html = _load_fixture("sounds_of_the_sea.html")
+
+    artwork = extract_artwork_fields(
+        html, "https://www.artfinder.com/product/sounds-of-the-sea-a4bae/"
+    )
+
+    assert artwork.title == "Sounds of the Sea"
+    assert (
+        artwork.description
+        == "A shimmering horizon captures the rhythm of the shoreline."
+    )
+    assert (
+        artwork.materials_used
+        == "Oil, pastel and charcoal layered on primed canvas."
     )
 
 
