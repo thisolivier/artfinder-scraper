@@ -14,10 +14,16 @@ from artfinder_scraper.scraping.spreadsheet import (
 )
 
 
-def _create_artwork(title: str, source_url: str, image_path: Path | None = None) -> Artwork:
+def _create_artwork(
+    title: str,
+    source_url: str,
+    *,
+    image_path: Path | None = None,
+    description: str | None = None,
+) -> Artwork:
     return Artwork(
         title=title,
-        description=f"Description for {title}",
+        description=description if description is not None else f"Description for {title}",
         price_gbp="£75",
         size="40 x 40 cm",
         sold=False,
@@ -37,7 +43,11 @@ def _make_image(path: Path) -> Path:
 def test_append_artwork_creates_workbook_and_embeds_image(tmp_path: Path) -> None:
     workbook_path = tmp_path / "artworks.xlsx"
     image_path = _make_image(tmp_path / "example.png")
-    artwork = _create_artwork("Sunrise", "https://example.com/product/sunrise/", image_path=image_path)
+    artwork = _create_artwork(
+        "Sunrise",
+        "https://example.com/product/sunrise/",
+        image_path=image_path,
+    )
 
     appended = append_artwork_to_spreadsheet(artwork, workbook_path)
     assert appended is True
@@ -96,4 +106,25 @@ def test_append_artwork_skips_duplicates(tmp_path: Path) -> None:
     assert worksheet.max_row == 3  # header + two unique entries
     titles = [worksheet.cell(row=row, column=2).value for row in range(2, worksheet.max_row + 1)]
     assert titles == ["First", "Second"]
+    workbook.close()
+
+
+def test_description_line_breaks_are_preserved(tmp_path: Path) -> None:
+    workbook_path = tmp_path / "artworks.xlsx"
+    multiline_description = "First paragraph.\r\n\r\nSecond paragraph with detail."
+    artwork = _create_artwork(
+        "Layered",
+        "https://example.com/product/layered/",
+        description=multiline_description,
+    )
+
+    assert append_artwork_to_spreadsheet(artwork, workbook_path) is True
+
+    workbook = load_workbook(workbook_path)
+    worksheet = workbook.active
+
+    cell = worksheet.cell(row=2, column=7)
+    assert cell.value == multiline_description.replace("\r\n", "\n")
+    assert cell.alignment.wrapText is True
+
     workbook.close()
