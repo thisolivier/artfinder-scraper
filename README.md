@@ -11,3 +11,8 @@ pytest artfinder_scraper/tests/test_extractor.py
 ```
 
 Add `-k <pattern>` to target a specific scenario (for example, sold items) when iterating on parsing logic.
+
+## Continuous integration
+
+All pull requests trigger the GitHub Actions workflow defined in `.github/workflows/test.yml`. The workflow installs the project's Python
+dependencies along with `pytest` before executing the full test suite to guard against regressions before merges.
