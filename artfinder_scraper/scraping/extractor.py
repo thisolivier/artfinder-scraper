@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Iterable, List, Optional
 
 from bs4 import BeautifulSoup, NavigableString, Tag
+
+from artfinder_scraper.scraping.models import Artwork
 
 
 TITLE_ARTIST = "lizzie butler"
@@ -19,32 +20,6 @@ MEDIUM_TRAILING_PATTERN = re.compile(
     r"\b(?:oil|acrylic|mixed media|ink|watercolour|watercolor|gouache|charcoal|pastel|print|painting|drawing|photograph|sculpture|artwork|original)\b.*$",
     flags=re.IGNORECASE,
 )
-
-
-@dataclass(frozen=True)
-class ExtractedFields:
-    """Container representing the parsed raw values from the artwork page."""
-
-    title: str
-    description: str | None
-    price_text: str | None
-    size: str | None
-    sold: bool
-    image_url: str | None
-    source_url: str
-
-    def as_dict(self) -> Dict[str, object]:
-        """Serialize the dataclass to a dictionary for downstream consumers."""
-
-        return {
-            "title": self.title,
-            "description": self.description,
-            "price_text": self.price_text,
-            "size": self.size,
-            "sold": self.sold,
-            "image_url": self.image_url,
-            "source_url": self.source_url,
-        }
 
 
 def _normalize_whitespace(text: str) -> str:
@@ -181,8 +156,8 @@ def _extract_image_url(soup: BeautifulSoup, title: Optional[str]) -> Optional[st
     return None
 
 
-def extract_artwork_fields(html: str, source_url: str) -> Dict[str, object]:
-    """Extract raw artwork fields from a rendered HTML page."""
+def extract_artwork_fields(html: str, source_url: str) -> Artwork:
+    """Extract structured artwork fields from a rendered HTML page."""
 
     soup = BeautifulSoup(html, "html.parser")
 
@@ -196,16 +171,16 @@ def extract_artwork_fields(html: str, source_url: str) -> Dict[str, object]:
     sold = _extract_sold_state(soup)
     image_url = _extract_image_url(soup, title)
 
-    fields = ExtractedFields(
+    artwork = Artwork(
         title=title,
         description=description,
-        price_text=price_text,
+        price_gbp=price_text,
         size=size,
         sold=sold,
         image_url=image_url,
         source_url=source_url,
     )
-    return fields.as_dict()
+    return artwork
 
 
 __all__ = ["extract_artwork_fields"]
