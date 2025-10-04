@@ -31,14 +31,14 @@ def test_extract_artwork_fields_for_available_item() -> None:
     html = _load_fixture("windswept_walk.html")
 
     artwork = extract_artwork_fields(
-        html, "https://www.artfinder.com/product/a-windswept-walk/"
+        html, "https://www.artfinder.com/product/echoes-of-dawn-canvas/"
     )
 
     assert isinstance(artwork, Artwork)
-    assert artwork.title == "A Windswept Walk"
+    assert artwork.title == "Echoes of Dawn"
     assert artwork.description == (
-        "This windswept walk captures the energy of the coastline.\n\n"
-        "Layers of oil paint bring movement to the clouds and surf."
+        "Soft apricot light pools along the shoreline at sunrise.\n\n"
+        "Feathery brushwork maps the breeze through distant grasses."
     )
     assert artwork.price_gbp and artwork.price_gbp == 475
     assert artwork.size == "46 x 46 x 2cm (unframed)"
@@ -53,9 +53,9 @@ def test_extract_artwork_fields_for_available_item() -> None:
     )
     assert (
         str(artwork.source_url)
-        == "https://www.artfinder.com/product/a-windswept-walk/"
+        == "https://www.artfinder.com/product/echoes-of-dawn-canvas/"
     )
-    assert artwork.slug == "a-windswept-walk"
+    assert artwork.slug == "echoes-of-dawn-canvas"
     assert artwork.scraped_at is not None
 
 
@@ -64,13 +64,13 @@ def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
 
     artwork = extract_artwork_fields(
         html,
-        "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/",
+        "https://www.artfinder.com/product/lantern-glow-atrium-study/",
     )
 
-    assert artwork.title == "Soft Light"
+    assert artwork.title == "Lantern Glow"
     assert (
         artwork.description
-        == "Delicate hues describe the gentle evening light across the bay."
+        == "Amber reflections drift across still water beside the quay."
     )
     assert artwork.price_gbp is None
     assert artwork.size == "30 x 40 cm"
@@ -85,7 +85,7 @@ def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
     )
     assert (
         str(artwork.source_url)
-        == "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/"
+        == "https://www.artfinder.com/product/lantern-glow-atrium-study/"
     )
 
 
@@ -95,11 +95,11 @@ def test_description_extraction_stops_before_materials_section() -> None:
       <body>
         <main>
           <section class=\"hero\">
-            <h1>Drift (2024) Oil painting by Lizzie Butler</h1>
+            <h1>Velvet Mirage (2024) Oil painting by Example Artist</h1>
           </section>
           <article>
             <h2>Original artwork description</h2>
-            <p>An expansive shoreline bathed in morning light.</p>
+            <p>Sunlit ribbons shimmer across a calm tidal plain.</p>
             <h5 class=\"header-art\">Materials used</h5>
             <p><a href=\"/medium/oil\">Oil</a> and <a href=\"/medium/wax\">wax</a> on panel</p>
           </article>
@@ -110,10 +110,10 @@ def test_description_extraction_stops_before_materials_section() -> None:
 
     artwork = extract_artwork_fields(
         html,
-        "https://www.artfinder.com/product/drift/",
+        "https://www.artfinder.com/product/driftwood-dreamscape/",
     )
 
-    assert artwork.description == "An expansive shoreline bathed in morning light."
+    assert artwork.description == "Sunlit ribbons shimmer across a calm tidal plain."
     assert artwork.materials_used == "Oil and wax on panel"
 
 
@@ -130,7 +130,7 @@ def test_extract_size_when_value_is_embedded_in_label_span() -> None:
       <body>
         <main>
           <section class=\"hero\">
-            <h1>Size Study (2022) Oil painting by Lizzie Butler</h1>
+            <h1>Silent Meadow (2022) Oil painting by Example Artist</h1>
             <div class=\"pricing\">
               <button type=\"button\">Add to Basket</button>
             </div>
@@ -141,14 +141,14 @@ def test_extract_size_when_value_is_embedded_in_label_span() -> None:
             </div>
           </section>
           <section class=\"gallery\">
-            <img src=\"https://cdn.example.com/images/size-study.jpg\" alt=\"Size Study painting by Lizzie Butler\" />
+            <img src=\"https://cdn.example.com/images/size-study.jpg\" alt=\"Silent Meadow painting by Example Artist\" />
           </section>
         </main>
       </body>
     </html>
     """
 
-    artwork = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study/")
+    artwork = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study-demo/")
 
     assert artwork.size == "50 x 60 cm (framed)"
 
@@ -157,7 +157,7 @@ def test_invalid_source_url_raises_validation_error() -> None:
     html = """
     <html>
       <body>
-        <h1>Shoreline (2024) Oil painting by Lizzie Butler</h1>
+        <h1>Prism Tide (2024) Oil painting by Example Artist</h1>
       </body>
     </html>
     """

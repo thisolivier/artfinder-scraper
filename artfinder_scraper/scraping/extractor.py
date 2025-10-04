@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from artfinder_scraper.scraping.models import Artwork
 
 
-TITLE_ARTIST = "lizzie butler"
+TITLE_ARTIST = "example artist"
 DESCRIPTION_HEADING = "original artwork description"
 ADD_TO_BASKET_TEXT = "add to basket"
 SOLD_INDICATORS = ("this artwork is sold", "sold out", "sold")
