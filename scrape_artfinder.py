@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Optional
 
 import typer
 
-from artfinder_scraper.scraping.browsers import fetch_page_html
+from artfinder_scraper.scraping.browsers import chromium_page, fetch_page_html
 from artfinder_scraper.scraping.extractor import extract_artwork_fields
+from artfinder_scraper.scraping.indexer import collect_listing_product_links
 
 
 try:
@@ -50,6 +52,27 @@ def fetch_item(
     else:  # pragma: no cover - pydantic v1 fallback
         serialized = artwork.dict()
     typer.echo(pformat(serialized))
+
+
+@app.command("list-page")
+def list_page(
+    url: str = typer.Argument(
+        ..., help="Listing page URL to enumerate product links from."
+    ),
+) -> None:
+    """Print the product URLs discovered on a listing page."""
+
+    async def _gather() -> list[str]:
+        async with chromium_page() as page:
+            return await collect_listing_product_links(url, page)
+
+    product_links = asyncio.run(_gather())
+    if not product_links:
+        typer.echo("No product URLs found.")
+        return
+
+    for product_url in product_links:
+        typer.echo(product_url)
 
 
 def main() -> None:

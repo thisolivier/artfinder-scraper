@@ -14,15 +14,17 @@ command-line workflow to download and process Artfinder artwork pages.
 * `models.py` defines the `Artwork` schema used across the scraping
   workflow, handling GBP price normalization, slug derivation from
   `/product/<slug>/` URLs, and timestamping when a record was scraped.
-* `downloader.py`, `indexer.py`, `normalize.py`, `spreadsheet.py`, and
+* `indexer.py` navigates listing pages with a Playwright page handle and
+  extracts canonical `/product/` links while removing duplicates.
+* `downloader.py`, `normalize.py`, `spreadsheet.py`, and
   `runner.py` are placeholders for the upcoming pagination, normalization, and
   orchestration layers described in the project spec.
 
 ## Fetching a single artwork
 
-The root CLI script wires the browser helper and extractor together. Use the
-`fetch-item` command to download an artwork detail page, optionally save the
-HTML, and pretty-print the parsed fields:
+The root CLI script wires the browser helper with both the extractor and the
+listing indexer. Use the `fetch-item` command to download an artwork detail
+page, optionally save the HTML, and pretty-print the parsed fields:
 
 ```bash
 python scrape_artfinder.py fetch-item \
@@ -30,3 +32,14 @@ python scrape_artfinder.py fetch-item \
 ```
 
 Pass `--out path/to/file.html` to capture the HTML alongside the parsed output.
+
+Invoke the `list-page` command to enumerate all product URLs that appear on a
+listing:
+
+```bash
+python scrape_artfinder.py list-page \
+  https://www.artfinder.com/artist/lizziebutler/sort-newest/
+```
+
+Links are normalized and deduplicated before printing so downstream crawlers
+can feed them directly into the detail-page workflow.
