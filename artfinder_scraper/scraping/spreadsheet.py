@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.drawing.image import Image as ExcelImage
+from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 from PIL import Image as PILImage
 
@@ -71,6 +72,7 @@ def append_artwork_to_spreadsheet(
     worksheet.append(_build_row_payload(artwork))
     row_index = worksheet.max_row
     _apply_hyperlink(worksheet, row_index, str(artwork.source_url))
+    _preserve_description_line_breaks(worksheet, row_index)
 
     if artwork.image_path:
         excel_image = _load_image_for_excel(Path(artwork.image_path), max_image_dimension)
@@ -171,6 +173,19 @@ def _apply_hyperlink(worksheet: Worksheet, row_index: int, url: str) -> None:
     cell.value = url
     cell.hyperlink = url
     cell.style = "Hyperlink"
+
+
+def _preserve_description_line_breaks(worksheet: Worksheet, row_index: int) -> None:
+    column_index = SPREADSHEET_COLUMNS.index("description") + 1
+    cell = worksheet.cell(row=row_index, column=column_index)
+
+    if isinstance(cell.value, str):
+        normalized_value = cell.value.replace("\r\n", "\n")
+        if normalized_value != cell.value:
+            cell.value = normalized_value
+
+        if "\n" in cell.value:
+            cell.alignment = Alignment(wrap_text=True)
 
 
 def _load_image_for_excel(image_path: Path, max_dimension: int) -> ExcelImage | None:
