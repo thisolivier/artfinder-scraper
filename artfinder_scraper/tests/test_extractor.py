@@ -38,10 +38,7 @@ def test_extract_artwork_fields_for_available_item() -> None:
             "Layers of oil paint bring movement to the clouds and surf."
         ),
         "price_text": "£475",
-        "size_raw": "Size: 46 x 46 x 2cm (unframed)",
-        "width_cm": 46.0,
-        "height_cm": 46.0,
-        "depth_cm": 2.0,
+        "size": "46 x 46 x 2cm (unframed)",
         "sold": False,
         "image_url": "https://cdn.example.com/images/windswept-walk.jpg",
         "source_url": "https://www.artfinder.com/product/a-windswept-walk/",
@@ -56,10 +53,7 @@ def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
     assert fields["title"] == "Soft Light"
     assert fields["description"] == "Delicate hues describe the gentle evening light across the bay."
     assert fields["price_text"] is None
-    assert fields["size_raw"] == "Size: 30 x 40 cm"
-    assert fields["width_cm"] == pytest.approx(30.0)
-    assert fields["height_cm"] == pytest.approx(40.0)
-    assert fields["depth_cm"] is None
+    assert fields["size"] == "30 x 40 cm"
     assert fields["sold"] is True
     assert fields["image_url"] == "https://cdn.example.com/images/soft-light-main.jpg"
     assert fields["source_url"] == "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/"
@@ -70,3 +64,32 @@ def test_missing_title_raises_value_error() -> None:
 
     with pytest.raises(ValueError):
         extract_artwork_fields(html, "https://example.com/item")
+
+
+def test_extract_size_when_value_is_embedded_in_label_span() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <section class=\"hero\">
+            <h1>Size Study (2022) Oil painting by Lizzie Butler</h1>
+            <div class=\"pricing\">
+              <button type=\"button\">Add to Basket</button>
+            </div>
+          </section>
+          <section class=\"specifications\">
+            <div class=\"product-attributes\">
+              <span>Size<!-- -->:<!-- --> 50 x 60 cm <!-- -->(framed)</span>
+            </div>
+          </section>
+          <section class=\"gallery\">
+            <img src=\"https://cdn.example.com/images/size-study.jpg\" alt=\"Size Study painting by Lizzie Butler\" />
+          </section>
+        </main>
+      </body>
+    </html>
+    """
+
+    fields = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study/")
+
+    assert fields["size"] == "50 x 60 cm (framed)"

@@ -11,14 +11,8 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 
 TITLE_ARTIST = "lizzie butler"
 DESCRIPTION_HEADING = "original artwork description"
-SIZE_PREFIX = "size:"
 ADD_TO_BASKET_TEXT = "add to basket"
 SOLD_INDICATORS = ("this artwork is sold", "sold out", "sold")
-
-SIZE_PATTERN = re.compile(
-    r"(?P<width>\d+(?:\.\d+)?)\s*x\s*(?P<height>\d+(?:\.\d+)?)(?:\s*x\s*(?P<depth>\d+(?:\.\d+)?))?\s*cm",
-    flags=re.IGNORECASE,
-)
 
 YEAR_PAREN_PATTERN = re.compile(r"\(\s*\d{4}\s*\)")
 MEDIUM_TRAILING_PATTERN = re.compile(
@@ -34,10 +28,7 @@ class ExtractedFields:
     title: str
     description: str | None
     price_text: str | None
-    size_raw: str | None
-    width_cm: float | None
-    height_cm: float | None
-    depth_cm: float | None
+    size: str | None
     sold: bool
     image_url: str | None
     source_url: str
@@ -49,10 +40,7 @@ class ExtractedFields:
             "title": self.title,
             "description": self.description,
             "price_text": self.price_text,
-            "size_raw": self.size_raw,
-            "width_cm": self.width_cm,
-            "height_cm": self.height_cm,
-            "depth_cm": self.depth_cm,
+            "size": self.size,
             "sold": self.sold,
             "image_url": self.image_url,
             "source_url": self.source_url,
@@ -122,25 +110,50 @@ def _extract_price_text(soup: BeautifulSoup) -> Optional[str]:
     return None
 
 
-def _extract_size_block(soup: BeautifulSoup) -> Optional[str]:
-    size_pattern = re.compile(SIZE_PREFIX, re.IGNORECASE)
-    for element in soup.find_all(string=size_pattern):
-        text = _normalize_whitespace(element)
-        if SIZE_PREFIX in text.lower():
-            return text
+_COMMENT_FRAGMENT_PATTERN = re.compile(r"<!--\s*-->")
+
+
+def _clean_size_text(text: str, *, remove_size_keyword: bool) -> str:
+    """Normalize whitespace and drop common non-content fragments."""
+
+    without_comments = _COMMENT_FRAGMENT_PATTERN.sub(" ", text)
+    cleaned = without_comments
+    if remove_size_keyword:
+        cleaned = re.sub(r"(?i)\bsize\b", " ", cleaned)
+        cleaned = cleaned.replace(":", " ")
+    normalized = _normalize_whitespace(cleaned)
+    return normalized
+
+
+def _extract_size_text(soup: BeautifulSoup) -> Optional[str]:
+    attribute_sections = soup.find_all(class_="product-attributes")
+    for section in attribute_sections:
+        for span in section.find_all("span"):
+            label = span.get_text(" ", strip=True)
+            if label.lower().startswith("size"):
+                sibling_texts: List[str] = []
+                for sibling in span.next_siblings:
+                    if isinstance(sibling, NavigableString):
+                        text = _normalize_whitespace(str(sibling))
+                    elif isinstance(sibling, Tag):
+                        text = _normalize_whitespace(
+                            sibling.get_text(" ", strip=True)
+                        )
+                    else:
+                        text = ""
+                    if text:
+                        sibling_texts.append(text)
+                if sibling_texts:
+                    combined = _clean_size_text(" ".join(sibling_texts), remove_size_keyword=False)
+                    combined = re.sub(r"^:\s*", "", combined)
+                    combined = combined.strip()
+                    return combined if combined else None
+
+                size_text = span.get_text(" ", strip=True)
+                combined = _clean_size_text(size_text, remove_size_keyword=True)
+                combined = combined.strip()
+                return combined if combined else None
     return None
-
-
-def _parse_dimensions(size_text: str | None) -> tuple[float | None, float | None, float | None]:
-    if not size_text:
-        return (None, None, None)
-    match = SIZE_PATTERN.search(size_text)
-    if not match:
-        return (None, None, None)
-    width = float(match.group("width")) if match.group("width") else None
-    height = float(match.group("height")) if match.group("height") else None
-    depth = float(match.group("depth")) if match.group("depth") else None
-    return (width, height, depth)
 
 
 def _extract_sold_state(soup: BeautifulSoup) -> bool:
@@ -179,8 +192,7 @@ def extract_artwork_fields(html: str, source_url: str) -> Dict[str, object]:
 
     description = _extract_description(soup)
     price_text = _extract_price_text(soup)
-    size_raw = _extract_size_block(soup)
-    width_cm, height_cm, depth_cm = _parse_dimensions(size_raw)
+    size = _extract_size_text(soup)
     sold = _extract_sold_state(soup)
     image_url = _extract_image_url(soup, title)
 
@@ -188,10 +200,7 @@ def extract_artwork_fields(html: str, source_url: str) -> Dict[str, object]:
         title=title,
         description=description,
         price_text=price_text,
-        size_raw=size_raw,
-        width_cm=width_cm,
-        height_cm=height_cm,
-        depth_cm=depth_cm,
+        size=size,
         sold=sold,
         image_url=image_url,
         source_url=source_url,
