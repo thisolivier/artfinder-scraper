@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from artfinder_scraper.scraping.extractor import extract_artwork_fields
+from artfinder_scraper.scraping.models import Artwork, ValidationError
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -29,34 +30,55 @@ def _load_fixture(name: str) -> str:
 def test_extract_artwork_fields_for_available_item() -> None:
     html = _load_fixture("windswept_walk.html")
 
-    fields = extract_artwork_fields(html, "https://www.artfinder.com/product/a-windswept-walk/")
+    artwork = extract_artwork_fields(
+        html, "https://www.artfinder.com/product/a-windswept-walk/"
+    )
 
-    assert fields == {
-        "title": "A Windswept Walk",
-        "description": (
-            "This windswept walk captures the energy of the coastline.\n\n"
-            "Layers of oil paint bring movement to the clouds and surf."
-        ),
-        "price_text": "£475",
-        "size": "46 x 46 x 2cm (unframed)",
-        "sold": False,
-        "image_url": "https://cdn.example.com/images/windswept-walk.jpg",
-        "source_url": "https://www.artfinder.com/product/a-windswept-walk/",
-    }
+    assert isinstance(artwork, Artwork)
+    assert artwork.title == "A Windswept Walk"
+    assert artwork.description == (
+        "This windswept walk captures the energy of the coastline.\n\n"
+        "Layers of oil paint bring movement to the clouds and surf."
+    )
+    assert artwork.price_gbp and artwork.price_gbp == 475
+    assert artwork.size == "46 x 46 x 2cm (unframed)"
+    assert artwork.sold is False
+    assert (
+        str(artwork.image_url)
+        == "https://cdn.example.com/images/windswept-walk.jpg"
+    )
+    assert (
+        str(artwork.source_url)
+        == "https://www.artfinder.com/product/a-windswept-walk/"
+    )
+    assert artwork.slug == "a-windswept-walk"
+    assert artwork.scraped_at is not None
 
 
 def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
     html = _load_fixture("soft_light_sold.html")
 
-    fields = extract_artwork_fields(html, "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/")
+    artwork = extract_artwork_fields(
+        html,
+        "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/",
+    )
 
-    assert fields["title"] == "Soft Light"
-    assert fields["description"] == "Delicate hues describe the gentle evening light across the bay."
-    assert fields["price_text"] is None
-    assert fields["size"] == "30 x 40 cm"
-    assert fields["sold"] is True
-    assert fields["image_url"] == "https://cdn.example.com/images/soft-light-main.jpg"
-    assert fields["source_url"] == "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/"
+    assert artwork.title == "Soft Light"
+    assert (
+        artwork.description
+        == "Delicate hues describe the gentle evening light across the bay."
+    )
+    assert artwork.price_gbp is None
+    assert artwork.size == "30 x 40 cm"
+    assert artwork.sold is True
+    assert (
+        str(artwork.image_url)
+        == "https://cdn.example.com/images/soft-light-main.jpg"
+    )
+    assert (
+        str(artwork.source_url)
+        == "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/"
+    )
 
 
 def test_missing_title_raises_value_error() -> None:
@@ -90,6 +112,19 @@ def test_extract_size_when_value_is_embedded_in_label_span() -> None:
     </html>
     """
 
-    fields = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study/")
+    artwork = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study/")
 
-    assert fields["size"] == "50 x 60 cm (framed)"
+    assert artwork.size == "50 x 60 cm (framed)"
+
+
+def test_invalid_source_url_raises_validation_error() -> None:
+    html = """
+    <html>
+      <body>
+        <h1>Shoreline (2024) Oil painting by Lizzie Butler</h1>
+      </body>
+    </html>
+    """
+
+    with pytest.raises(ValidationError):
+        extract_artwork_fields(html, "not-a-valid-url")

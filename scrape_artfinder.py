@@ -43,9 +43,13 @@ def fetch_item(
         output.write_text(html_content, encoding="utf-8")
         typer.echo(f"Saved HTML to {output}")
 
-    parsed_fields = extract_artwork_fields(html_content, url)
+    artwork = extract_artwork_fields(html_content, url)
     typer.echo("Parsed fields:")
-    typer.echo(pformat(parsed_fields))
+    if hasattr(artwork, "model_dump"):
+        serialized = artwork.model_dump()
+    else:  # pragma: no cover - pydantic v1 fallback
+        serialized = artwork.dict()
+    typer.echo(pformat(serialized))
 
 
 def main() -> None:
