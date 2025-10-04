@@ -59,3 +59,15 @@ python scrape_artfinder.py list-page \
 
 Links are normalized and deduplicated before printing so downstream crawlers
 can feed them directly into the detail-page workflow.
+
+### Orchestration commands
+
+Run `python scrape_artfinder.py run` to execute the full pipeline. The command
+now accepts `--dry-run` to exercise listing pagination, parsing, and
+normalization without downloading images or mutating the JSONL/Excel outputs.
+
+Resume a previously interrupted crawl with `python scrape_artfinder.py resume`.
+It reads the JSONL archive to collect processed slugs, skips those URLs, and
+continues crawling new items without duplicating spreadsheet rows. Combine the
+resume command with `--dry-run` to confirm that the slug filtering works before
+performing a full write.
