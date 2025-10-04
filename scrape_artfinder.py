@@ -110,12 +110,26 @@ def run_pipeline(
         "--listing-url",
         help="Listing URL to crawl for product links.",
     ),
+    jsonl_path: Optional[Path] = typer.Option(
+        None,
+        "--jsonl-path",
+        help="Location where JSONL records should be written.",
+    ),
+    rate_limit: float = typer.Option(
+        1.0,
+        "--rate-limit",
+        help="Minimum delay (in seconds) between detail page fetches.",
+    ),
 ) -> None:
     """Execute the end-to-end scraping pipeline for a limited number of items."""
 
-    runner = ScraperRunner(listing_url=listing_url)
+    runner = ScraperRunner(
+        listing_url=listing_url,
+        jsonl_path=jsonl_path,
+        rate_limit_seconds=rate_limit,
+    )
 
-    processed_artworks = asyncio.run(runner.crawl(max_items=limit))
+    processed_artworks = runner.run(max_items=limit)
     typer.echo(
         f"Processed {len(processed_artworks)} artwork(s); records appended to {runner.jsonl_path}"
     )

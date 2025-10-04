@@ -27,7 +27,8 @@ command-line workflow to download and process Artfinder artwork pages.
   into JSON-serializable dictionaries for archival storage.
 * `runner.py` implements `ScraperRunner`, the orchestrator that walks listing
   pagination, fetches detail pages, normalizes the resulting records, downloads
-  imagery, and appends JSONL entries.
+  imagery, and appends JSONL entries. The CLI exposes a `run` command wired to
+  this class so the entire flow can be exercised from the terminal.
 
 ## Fetching a single artwork
 
