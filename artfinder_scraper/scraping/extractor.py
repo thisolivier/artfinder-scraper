@@ -26,6 +26,33 @@ def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+STOP_DESCRIPTION_PREFIXES = (
+    "This piece is signed",
+    "All artwork is carefully wrapped",
+    "Tracking Code",
+)
+
+
+def _truncate_description_text(text: str) -> Optional[str]:
+    """Remove marketing boilerplate sentences from the description."""
+
+    earliest_match_index: Optional[int] = None
+    for prefix in STOP_DESCRIPTION_PREFIXES:
+        pattern = re.compile(rf"(?m)^[\s]*{re.escape(prefix)}")
+        match = pattern.search(text)
+        if match:
+            if earliest_match_index is None or match.start() < earliest_match_index:
+                earliest_match_index = match.start()
+
+    if earliest_match_index is None:
+        return text
+
+    truncated = text[:earliest_match_index].rstrip()
+    if truncated:
+        return truncated
+    return None
+
+
 def _find_product_header(soup: BeautifulSoup) -> Optional[Tag]:
     product_original = soup.find("div", id="product-original")
     if not product_original:
@@ -122,7 +149,7 @@ def _parse_artwork_description_section(
     if not paragraphs:
         return None, None
 
-    description_text = paragraphs[0]
+    description_text = _truncate_description_text(paragraphs[0])
     materials_text = paragraphs[1] if len(paragraphs) > 1 else None
     return description_text, materials_text
 
@@ -130,7 +157,9 @@ def _parse_artwork_description_section(
 def _extract_description(soup: BeautifulSoup) -> Optional[str]:
     description_text, _ = _parse_artwork_description_section(soup)
     if description_text:
-        return description_text
+        truncated = _truncate_description_text(description_text)
+        if truncated:
+            return truncated
 
     heading_candidates = soup.find_all(
         string=re.compile(DESCRIPTION_HEADING, re.IGNORECASE)
@@ -165,7 +194,10 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
             para for para in (_normalize_whitespace(p) for p in paragraphs) if para
         ]
         if cleaned_paragraphs:
-            return "\n\n".join(cleaned_paragraphs)
+            joined = "\n\n".join(cleaned_paragraphs)
+            truncated = _truncate_description_text(joined)
+            if truncated:
+                return truncated
     return None
 
 

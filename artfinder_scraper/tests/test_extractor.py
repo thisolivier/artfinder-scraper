@@ -142,6 +142,33 @@ def test_description_extraction_stops_before_materials_section() -> None:
     assert artwork.materials_used == "Oil and wax on panel"
 
 
+def test_description_truncates_marketing_boilerplate_sentences() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <section class=\"hero\">
+            <h1>Breeze (2024) Oil painting by Lizzie Butler</h1>
+          </section>
+          <article>
+            <h2>Original artwork description</h2>
+            <p>A gentle shoreline bathed in the glow of dusk.</p>
+            <p>This piece is signed on the reverse of the panel.</p>
+            <p>All artwork is carefully wrapped for delivery.</p>
+          </article>
+        </main>
+      </body>
+    </html>
+    """
+
+    artwork = extract_artwork_fields(
+        html,
+        "https://www.artfinder.com/product/breeze/",
+    )
+
+    assert artwork.description == "A gentle shoreline bathed in the glow of dusk."
+
+
 def test_missing_title_raises_value_error() -> None:
     html = "<html><body><h1>No artist reference here</h1></body></html>"
 
