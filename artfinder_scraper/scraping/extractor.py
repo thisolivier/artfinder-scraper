@@ -60,6 +60,11 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
             if isinstance(sibling, NavigableString):
                 continue
             if isinstance(sibling, Tag):
+                sibling_classes = sibling.get("class") or []
+                if sibling.name == "h5" and "header-art" in sibling_classes:
+                    break
+                if sibling.find("h5", class_="header-art"):
+                    break
                 if sibling.name in {"h1", "h2", "h3"}:
                     break
                 if sibling.find(string=re.compile("Specifications", re.IGNORECASE)):
@@ -70,6 +75,24 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
         cleaned_paragraphs = [para for para in (_normalize_whitespace(p) for p in paragraphs) if para]
         if cleaned_paragraphs:
             return "\n\n".join(cleaned_paragraphs)
+    return None
+
+
+def _extract_materials_used(soup: BeautifulSoup) -> Optional[str]:
+    for heading in soup.find_all("h5", class_="header-art"):
+        heading_text = heading.get_text(" ", strip=True)
+        if "material" not in heading_text.lower():
+            continue
+
+        for sibling in heading.next_siblings:
+            if isinstance(sibling, NavigableString):
+                continue
+            if isinstance(sibling, Tag):
+                if sibling.name == "p":
+                    text = sibling.get_text(" ", strip=True)
+                    cleaned = _normalize_whitespace(text)
+                    return cleaned or None
+                break
     return None
 
 
@@ -170,6 +193,7 @@ def extract_artwork_fields(html: str, source_url: str) -> Artwork:
     size = _extract_size_text(soup)
     sold = _extract_sold_state(soup)
     image_url = _extract_image_url(soup, title)
+    materials_used = _extract_materials_used(soup)
 
     artwork = Artwork(
         title=title,
@@ -178,6 +202,7 @@ def extract_artwork_fields(html: str, source_url: str) -> Artwork:
         size=size,
         sold=sold,
         image_url=image_url,
+        materials_used=materials_used,
         source_url=source_url,
     )
     return artwork

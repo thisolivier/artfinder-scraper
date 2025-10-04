@@ -4,7 +4,7 @@ This project will crawl every artwork listed on Lizzie Butler's Artfinder shop, 
 
 ## Running parser tests
 
-Saved HTML fixtures verify the extractor and indexer behaviour without launching a real browser. Execute the focused test modules with:
+The extractor uses saved HTML fixtures to verify that titles, prices, size text, sold state, images, and materials used copy are detected correctly. Execute the focused test module with:
 
 ```bash
 pytest artfinder_scraper/tests/test_extractor.py

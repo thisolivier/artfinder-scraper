@@ -48,6 +48,10 @@ def test_extract_artwork_fields_for_available_item() -> None:
         == "https://cdn.example.com/images/windswept-walk.jpg"
     )
     assert (
+        artwork.materials_used
+        == "Oil on board with added texture"
+    )
+    assert (
         str(artwork.source_url)
         == "https://www.artfinder.com/product/a-windswept-walk/"
     )
@@ -76,9 +80,41 @@ def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
         == "https://cdn.example.com/images/soft-light-main.jpg"
     )
     assert (
+        artwork.materials_used
+        == "Oil on canvas with silver leaf highlights"
+    )
+    assert (
         str(artwork.source_url)
         == "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/"
     )
+
+
+def test_description_extraction_stops_before_materials_section() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <section class=\"hero\">
+            <h1>Drift (2024) Oil painting by Lizzie Butler</h1>
+          </section>
+          <article>
+            <h2>Original artwork description</h2>
+            <p>An expansive shoreline bathed in morning light.</p>
+            <h5 class=\"header-art\">Materials used</h5>
+            <p><a href=\"/medium/oil\">Oil</a> and <a href=\"/medium/wax\">wax</a> on panel</p>
+          </article>
+        </main>
+      </body>
+    </html>
+    """
+
+    artwork = extract_artwork_fields(
+        html,
+        "https://www.artfinder.com/product/drift/",
+    )
+
+    assert artwork.description == "An expansive shoreline bathed in morning light."
+    assert artwork.materials_used == "Oil and wax on panel"
 
 
 def test_missing_title_raises_value_error() -> None:

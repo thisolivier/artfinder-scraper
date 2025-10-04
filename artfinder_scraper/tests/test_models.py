@@ -17,12 +17,14 @@ def test_artwork_model_parses_price_and_slug() -> None:
         size="50 x 70 cm",
         sold=False,
         image_url="https://cdn.example.com/images/evening-glow.jpg",
+        materials_used="Oil on canvas ",
         source_url="https://www.artfinder.com/product/evening-glow/",
     )
 
     assert artwork.price_gbp == Decimal("1234")
     assert artwork.slug == "evening-glow"
     assert artwork.scraped_at.tzinfo is not None
+    assert artwork.materials_used == "Oil on canvas"
 
 
 @pytest.mark.parametrize(

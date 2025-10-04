@@ -44,6 +44,10 @@ class Artwork(BaseModel):
         default=None,
         description="Local filesystem path of the downloaded image, if available.",
     )
+    materials_used: str | None = Field(
+        default=None,
+        description="Materials listed for the artwork, captured from the specification panel.",
+    )
     source_url: HttpUrl = Field(..., description="Canonical URL of the artwork detail page.")
     scraped_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -63,7 +67,7 @@ class Artwork(BaseModel):
             raise ValueError("title must not be empty")
         return cleaned
 
-    @validator("description", "size", "image_path", pre=True)
+    @validator("description", "size", "image_path", "materials_used", pre=True)
     def _strip_optional_fields(cls, value: Any) -> Any:
         """Collapse blank optional strings to ``None``."""
 
