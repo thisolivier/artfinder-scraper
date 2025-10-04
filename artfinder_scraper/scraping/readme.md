@@ -30,6 +30,10 @@ command-line workflow to download and process Artfinder artwork pages.
   each `Artwork.image_path` for downstream consumers.
 * `normalize.py` contains helpers that convert the pydantic `Artwork` model
   into JSON-serializable dictionaries for archival storage.
+* `spreadsheet.py` exposes helpers that maintain the Excel catalog. It creates
+  the workbook when missing, enforces the canonical column order, embeds
+  thumbnail images, and skips rows whose slug or title already exists so reruns
+  do not produce duplicates.
 * `runner.py` implements `ScraperRunner`, the orchestrator that walks listing
   pagination, fetches detail pages, normalizes the resulting records, downloads
   imagery, and appends JSONL entries. The CLI exposes a `run` command wired to
@@ -43,7 +47,7 @@ page, optionally save the HTML, and pretty-print the parsed fields:
 
 ```bash
 python scrape_artfinder.py fetch-item \
-  https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/
+  https://www.artfinder.com/product/lantern-glow-atrium-study/
 ```
 
 Pass `--out path/to/file.html` to capture the HTML alongside the parsed output.
@@ -53,7 +57,7 @@ listing:
 
 ```bash
 python scrape_artfinder.py list-page \
-  https://www.artfinder.com/artist/lizziebutler/sort-newest/
+  https://www.artfinder.com/artist/example-artist/sort-newest/
 ```
 
 Links are normalized and deduplicated before printing so downstream crawlers

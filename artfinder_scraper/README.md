@@ -11,7 +11,11 @@ This package will contain the scraping logic, tests, and storage helpers for the
 The root `scrape_artfinder.py` script hosts a Typer application. The first available subcommand mirrors the specification’s single-item workflow:
 
 ```bash
-python scrape_artfinder.py fetch-item https://www.artfinder.com/product/a-windswept-walk/
+python scrape_artfinder.py fetch-item https://www.artfinder.com/product/echoes-of-dawn-canvas/
 ```
 
 Pass `--out path/to/file.html` to store the rendered HTML instead of printing it to the terminal. Use `--download-image` to save the hero image to `out/images/` while reporting the stored path in the console output.
+
+## Test fixtures
+
+Tests exercise the parsing helpers with anonymized HTML fixtures. The fixtures reference fictional artist names, artwork titles, descriptions, and URLs to ensure the suite avoids real-world listings while still covering the expected extraction logic.

@@ -8,7 +8,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, List
 
-import pytest
+from pathlib import Path
 
 from artfinder_scraper.scraping.models import Artwork
 from artfinder_scraper.scraping.runner import ScraperRunner
@@ -74,6 +74,11 @@ def test_runner_processes_items_and_writes_jsonl(tmp_path) -> None:
             "price_gbp": artwork.price_gbp,
         }
 
+    def fake_spreadsheet_writer(artwork: Artwork, path) -> bool:
+        call_log.append(("spreadsheet", artwork.slug))
+        spreadsheet_calls.append(path)
+        return True
+
     sleep_durations: list[float] = []
 
     async def fake_sleep(duration: float) -> None:
@@ -90,6 +95,8 @@ def test_runner_processes_items_and_writes_jsonl(tmp_path) -> None:
         yield object()
 
     jsonl_path = tmp_path / "data" / "artworks.jsonl"
+    spreadsheet_path = tmp_path / "data" / "artworks.xlsx"
+    spreadsheet_calls: list[Path] = []
 
     runner = ScraperRunner(
         listing_url=listing_url,
@@ -100,10 +107,12 @@ def test_runner_processes_items_and_writes_jsonl(tmp_path) -> None:
         listing_iterator=fake_listing_iterator,
         page_factory=fake_page_factory,
         jsonl_path=jsonl_path,
+        spreadsheet_path=spreadsheet_path,
         rate_limit_seconds=0.5,
         sleep_function=fake_sleep,
         time_function=fake_time,
         logger=logging.getLogger("scraper-runner-test"),
+        spreadsheet_writer=fake_spreadsheet_writer,
     )
 
     processed_artworks = asyncio.run(runner.crawl(max_items=2))
@@ -117,11 +126,13 @@ def test_runner_processes_items_and_writes_jsonl(tmp_path) -> None:
         ("extract", product_urls[0]),
         ("download", "one"),
         ("normalize", "one"),
+        ("spreadsheet", "one"),
         ("index", product_urls[1]),
         ("fetch", product_urls[1]),
         ("extract", product_urls[1]),
         ("download", "two"),
         ("normalize", "two"),
+        ("spreadsheet", "two"),
     ]
     assert call_log == expected_sequence
 
@@ -130,6 +141,7 @@ def test_runner_processes_items_and_writes_jsonl(tmp_path) -> None:
     assert len(json_lines) == 2
     parsed_records = [json.loads(line) for line in json_lines]
     assert {record["slug"] for record in parsed_records} == {"one", "two"}
+    assert spreadsheet_calls == [spreadsheet_path, spreadsheet_path]
 
 
 def test_runner_records_errors_and_continues(tmp_path, caplog) -> None:
@@ -164,6 +176,12 @@ def test_runner_records_errors_and_continues(tmp_path, caplog) -> None:
         yield object()
 
     jsonl_path = tmp_path / "data" / "artworks.jsonl"
+    spreadsheet_path = tmp_path / "data" / "artworks.xlsx"
+    spreadsheet_calls: list[str] = []
+
+    def fake_spreadsheet_writer(artwork: Artwork, path) -> bool:
+        spreadsheet_calls.append(artwork.slug)
+        return True
 
     runner = ScraperRunner(
         listing_url=listing_url,
@@ -173,7 +191,9 @@ def test_runner_records_errors_and_continues(tmp_path, caplog) -> None:
         listing_iterator=fake_listing_iterator,
         page_factory=fake_page_factory,
         jsonl_path=jsonl_path,
+        spreadsheet_path=spreadsheet_path,
         logger=logging.getLogger("scraper-runner-test"),
+        spreadsheet_writer=fake_spreadsheet_writer,
     )
 
     with caplog.at_level(logging.ERROR):
@@ -189,4 +209,5 @@ def test_runner_records_errors_and_continues(tmp_path, caplog) -> None:
     assert len(json_lines) == 1
     remaining_record = json.loads(json_lines[0])
     assert remaining_record["slug"] == "valid"
+    assert spreadsheet_calls == ["valid"]
 
