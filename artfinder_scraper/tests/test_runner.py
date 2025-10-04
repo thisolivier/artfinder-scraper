@@ -10,8 +10,13 @@ from typing import AsyncIterator, List
 
 from pathlib import Path
 
+from openpyxl import load_workbook
+
+from artfinder_scraper.scraping.extractor import extract_artwork_fields
 from artfinder_scraper.scraping.models import Artwork
+from artfinder_scraper.scraping.normalize import normalize_artwork
 from artfinder_scraper.scraping.runner import ScraperRunner
+from artfinder_scraper.scraping.spreadsheet import DEFAULT_SHEET_NAME
 
 
 def _build_artwork(product_url: str, index: int) -> Artwork:
@@ -310,4 +315,78 @@ def test_runner_records_errors_and_continues(tmp_path, caplog) -> None:
     remaining_record = json.loads(json_lines[0])
     assert remaining_record["slug"] == "valid"
     assert spreadsheet_calls == ["valid"]
+
+
+def test_runner_persists_truncated_descriptions(tmp_path) -> None:
+    listing_url = "https://example.com/listing/"
+    product_url = "https://www.artfinder.com/product/harbor-light/"
+
+    html = """
+    <html>
+      <head>
+        <meta property=\"og:image\" content=\"https://cdn.example.com/images/harbor-light.jpg\" />
+      </head>
+      <body>
+        <div id=\"product-original\">
+          <h1>
+            <span class=\"title\">Harbor Light</span>
+            <span class=\"subtitle\">Oil painting</span>
+          </h1>
+        </div>
+        <section class=\"artwork-description\">
+          <h5>Original artwork description</h5>
+          <p>Serene tides glow beneath evening lanterns. Ready to hang the moment it arrives.</p>
+          <p>Oil on canvas</p>
+        </section>
+        <section class=\"product-attributes\">
+          <span>Size: 30 x 40 cm</span>
+        </section>
+        <div class=\"pricing\">
+          <span>£525</span>
+        </div>
+        <button>Add to Basket</button>
+      </body>
+    </html>
+    """
+
+    async def fake_listing_iterator(listing: str, page, *, logger=None) -> AsyncIterator[str]:
+        assert listing == listing_url
+        yield product_url
+
+    async def fake_fetch(url: str) -> str:
+        assert url == product_url
+        return html
+
+    @asynccontextmanager
+    async def fake_page_factory():
+        yield object()
+
+    jsonl_path = tmp_path / "data" / "artworks.jsonl"
+    spreadsheet_path = tmp_path / "data" / "artworks.xlsx"
+
+    runner = ScraperRunner(
+        listing_url=listing_url,
+        fetch_html=fake_fetch,
+        extractor=extract_artwork_fields,
+        normalizer=normalize_artwork,
+        listing_iterator=fake_listing_iterator,
+        page_factory=fake_page_factory,
+        jsonl_path=jsonl_path,
+        spreadsheet_path=spreadsheet_path,
+        download_images=False,
+    )
+
+    processed = asyncio.run(runner.crawl(max_items=1))
+    assert len(processed) == 1
+
+    json_lines = jsonl_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(json_lines) == 1
+    record = json.loads(json_lines[0])
+    expected_description = "Serene tides glow beneath evening lanterns."
+    assert record["description"] == expected_description
+
+    workbook = load_workbook(spreadsheet_path)
+    worksheet = workbook[DEFAULT_SHEET_NAME]
+    assert worksheet["G2"].value == expected_description
+    workbook.close()
 

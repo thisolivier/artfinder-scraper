@@ -169,6 +169,32 @@ def test_description_truncates_marketing_boilerplate_sentences() -> None:
     assert artwork.description == "A gentle shoreline bathed in the glow of dusk."
 
 
+def test_description_truncation_handles_inline_marketing_sentence() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <section class=\"hero\">
+            <h1>Breeze (2024) Oil painting by Lizzie Butler</h1>
+          </section>
+          <article>
+            <h2>Original artwork description</h2>
+            <p>A gentle shoreline bathed in the glow of dusk. Ready to hang the moment it arrives.</p>
+            <p>All artwork is carefully wrapped for delivery.</p>
+          </article>
+        </main>
+      </body>
+    </html>
+    """
+
+    artwork = extract_artwork_fields(
+        html,
+        "https://www.artfinder.com/product/breeze/",
+    )
+
+    assert artwork.description == "A gentle shoreline bathed in the glow of dusk."
+
+
 @pytest.mark.parametrize(
     "prefix",
     [
