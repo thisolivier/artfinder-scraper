@@ -110,6 +110,21 @@ def _extract_price_text(soup: BeautifulSoup) -> Optional[str]:
     return None
 
 
+_COMMENT_FRAGMENT_PATTERN = re.compile(r"<!--\s*-->")
+
+
+def _clean_size_text(text: str, *, remove_size_keyword: bool) -> str:
+    """Normalize whitespace and drop common non-content fragments."""
+
+    without_comments = _COMMENT_FRAGMENT_PATTERN.sub(" ", text)
+    cleaned = without_comments
+    if remove_size_keyword:
+        cleaned = re.sub(r"(?i)\bsize\b", " ", cleaned)
+        cleaned = cleaned.replace(":", " ")
+    normalized = _normalize_whitespace(cleaned)
+    return normalized
+
+
 def _extract_size_text(soup: BeautifulSoup) -> Optional[str]:
     attribute_sections = soup.find_all(class_="product-attributes")
     for section in attribute_sections:
@@ -128,10 +143,15 @@ def _extract_size_text(soup: BeautifulSoup) -> Optional[str]:
                         text = ""
                     if text:
                         sibling_texts.append(text)
-                if not sibling_texts:
-                    return None
-                combined = " ".join(sibling_texts).strip()
-                combined = re.sub(r"^:\s*", "", combined)
+                if sibling_texts:
+                    combined = _clean_size_text(" ".join(sibling_texts), remove_size_keyword=False)
+                    combined = re.sub(r"^:\s*", "", combined)
+                    combined = combined.strip()
+                    return combined if combined else None
+
+                size_text = span.get_text(" ", strip=True)
+                combined = _clean_size_text(size_text, remove_size_keyword=True)
+                combined = combined.strip()
                 return combined if combined else None
     return None
 

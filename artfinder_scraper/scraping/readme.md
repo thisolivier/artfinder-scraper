@@ -6,7 +6,9 @@ command-line workflow to download and process Artfinder artwork pages.
 * `browsers.py` exposes `fetch_page_html`, a thin Playwright wrapper that
   requests a detail page with the required user agent and politeness delay.
 * `extractor.py` parses the rendered HTML into a dictionary of raw field
-  values that higher-level flows can normalize later on.
+  values that higher-level flows can normalize later on, including
+  consolidating size metadata from `product-attributes` spans while
+  stripping inert comment fragments from the collected text.
 * `downloader.py`, `indexer.py`, `normalize.py`, `spreadsheet.py`, and
   `runner.py` are placeholders for the upcoming pagination, normalization, and
   orchestration layers described in the project spec.

@@ -64,3 +64,32 @@ def test_missing_title_raises_value_error() -> None:
 
     with pytest.raises(ValueError):
         extract_artwork_fields(html, "https://example.com/item")
+
+
+def test_extract_size_when_value_is_embedded_in_label_span() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <section class=\"hero\">
+            <h1>Size Study (2022) Oil painting by Lizzie Butler</h1>
+            <div class=\"pricing\">
+              <button type=\"button\">Add to Basket</button>
+            </div>
+          </section>
+          <section class=\"specifications\">
+            <div class=\"product-attributes\">
+              <span>Size<!-- -->:<!-- --> 50 x 60 cm <!-- -->(framed)</span>
+            </div>
+          </section>
+          <section class=\"gallery\">
+            <img src=\"https://cdn.example.com/images/size-study.jpg\" alt=\"Size Study painting by Lizzie Butler\" />
+          </section>
+        </main>
+      </body>
+    </html>
+    """
+
+    fields = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study/")
+
+    assert fields["size"] == "50 x 60 cm (framed)"
