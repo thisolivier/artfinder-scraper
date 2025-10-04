@@ -12,8 +12,9 @@ command-line workflow to download and process Artfinder artwork pages.
   plus materials copy from the structured
   `.artwork-description` section while still falling back to legacy markup.
   Marketing boilerplate beginning with sentences such as “This piece is
-  signed” or “All artwork is carefully wrapped” is trimmed so only the artist's
-  copy remains. The extractor continues consolidating size metadata from
+  signed”, “All artwork is carefully wrapped”, “Ready to hang”, or “Painted in
+  oil on a stretched canvas.” is trimmed so only the artist's copy remains. The
+  extractor continues consolidating size metadata from
   `product-attributes` spans, stripping inert comment fragments from the
   collected text, and flattening hyperlinks to plain text. Parsed values are
   materialized as an `Artwork` pydantic model so downstream components receive

@@ -169,6 +169,42 @@ def test_description_truncates_marketing_boilerplate_sentences() -> None:
     assert artwork.description == "A gentle shoreline bathed in the glow of dusk."
 
 
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        "Ready to hang",
+        "Lizzie Butler is a ",
+        "She has exhibited ",
+        "Painted in oil on a stretched canvas.",
+        "Strung and ready to",
+    ],
+)
+def test_description_truncation_handles_additional_prefixes(prefix: str) -> None:
+    html = f"""
+    <html>
+      <body>
+        <main>
+          <section class=\"hero\">
+            <h1>Breeze (2024) Oil painting by Lizzie Butler</h1>
+          </section>
+          <article>
+            <h2>Original artwork description</h2>
+            <p>A gentle shoreline bathed in the glow of dusk.</p>
+            <p>{prefix}Collectors cherish its calming palette.</p>
+          </article>
+        </main>
+      </body>
+    </html>
+    """
+
+    artwork = extract_artwork_fields(
+        html,
+        "https://www.artfinder.com/product/breeze/",
+    )
+
+    assert artwork.description == "A gentle shoreline bathed in the glow of dusk."
+
+
 def test_missing_title_raises_value_error() -> None:
     html = "<html><body><h1>No artist reference here</h1></body></html>"
 

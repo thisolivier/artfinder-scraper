@@ -30,6 +30,11 @@ STOP_DESCRIPTION_PREFIXES = (
     "This piece is signed",
     "All artwork is carefully wrapped",
     "Tracking Code",
+    "Ready to hang",
+    "Lizzie Butler is a ",
+    "She has exhibited ",
+    "Painted in oil on a stretched canvas.",
+    "Strung and ready to",
 )
 
 
