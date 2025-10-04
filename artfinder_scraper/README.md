@@ -14,4 +14,4 @@ The root `scrape_artfinder.py` script hosts a Typer application. The first avail
 python scrape_artfinder.py fetch-item https://www.artfinder.com/product/a-windswept-walk/
 ```
 
-Pass `--out path/to/file.html` to store the rendered HTML instead of printing it to the terminal.
+Pass `--out path/to/file.html` to store the rendered HTML instead of printing it to the terminal. Use `--download-image` to save the hero image to `out/images/` while reporting the stored path in the console output.
