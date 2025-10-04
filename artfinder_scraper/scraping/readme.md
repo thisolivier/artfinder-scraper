@@ -27,6 +27,10 @@ command-line workflow to download and process Artfinder artwork pages.
   each `Artwork.image_path` for downstream consumers.
 * `normalize.py` contains helpers that convert the pydantic `Artwork` model
   into JSON-serializable dictionaries for archival storage.
+* `spreadsheet.py` exposes helpers that maintain the Excel catalog. It creates
+  the workbook when missing, enforces the canonical column order, embeds
+  thumbnail images, and skips rows whose slug or title already exists so reruns
+  do not produce duplicates.
 * `runner.py` implements `ScraperRunner`, the orchestrator that walks listing
   pagination, fetches detail pages, normalizes the resulting records, downloads
   imagery, and appends JSONL entries. The CLI exposes a `run` command wired to
