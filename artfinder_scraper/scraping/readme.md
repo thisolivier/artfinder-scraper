@@ -40,7 +40,7 @@ page, optionally save the HTML, and pretty-print the parsed fields:
 
 ```bash
 python scrape_artfinder.py fetch-item \
-  https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/
+  https://www.artfinder.com/product/lantern-glow-atrium-study/
 ```
 
 Pass `--out path/to/file.html` to capture the HTML alongside the parsed output.
@@ -50,7 +50,7 @@ listing:
 
 ```bash
 python scrape_artfinder.py list-page \
-  https://www.artfinder.com/artist/lizziebutler/sort-newest/
+  https://www.artfinder.com/artist/example-artist/sort-newest/
 ```
 
 Links are normalized and deduplicated before printing so downstream crawlers

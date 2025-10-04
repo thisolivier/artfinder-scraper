@@ -19,11 +19,11 @@ def test_artwork_model_parses_price_and_slug() -> None:
         sold=False,
         image_url="https://cdn.example.com/images/evening-glow.jpg",
         materials_used="Oil on canvas ",
-        source_url="https://www.artfinder.com/product/evening-glow/",
+        source_url="https://www.artfinder.com/product/evening-glow-sample/",
     )
 
     assert artwork.price_gbp == Decimal("1234")
-    assert artwork.slug == "evening-glow"
+    assert artwork.slug == "evening-glow-sample"
     assert artwork.scraped_at.tzinfo is not None
     assert artwork.medium == "Oil on canvas"
     assert artwork.materials_used == "Oil on canvas"
@@ -42,7 +42,7 @@ def test_artwork_model_rejects_invalid_price_types(invalid_price: object) -> Non
             size=None,
             sold=True,
             image_url="https://cdn.example.com/images/skyline.jpg",
-            source_url="https://www.artfinder.com/product/skyline/",
+            source_url="https://www.artfinder.com/product/skyline-study/",
         )
 
 
@@ -55,5 +55,5 @@ def test_artwork_model_requires_slug_in_source_url() -> None:
             size=None,
             sold=False,
             image_url="https://cdn.example.com/images/misty-morning.jpg",
-            source_url="https://www.artfinder.com/artist/lizziebutler/",
+            source_url="https://www.artfinder.com/artist/example-artist/",
         )

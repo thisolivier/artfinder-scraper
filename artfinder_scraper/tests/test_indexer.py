@@ -72,31 +72,31 @@ class DummyPaginatedPage:
 
 
 def test_collect_listing_product_links_deduplicates_and_normalizes() -> None:
-    html = (FIXTURES_DIR / "lizzie_butler_listing.html").read_text(encoding="utf-8")
+    html = (FIXTURES_DIR / "example_artist_listing.html").read_text(encoding="utf-8")
     page = DummyPolitePage(html)
 
     links = asyncio.run(
         collect_listing_product_links(
-            "https://www.artfinder.com/artist/lizziebutler/sort-newest/",
+            "https://www.artfinder.com/artist/example-artist/sort-newest/",
             page,
         )
     )
 
     assert page.goto_calls == [
         {
-            "url": "https://www.artfinder.com/artist/lizziebutler/sort-newest/",
+            "url": "https://www.artfinder.com/artist/example-artist/sort-newest/",
             "wait_for_selector": LISTING_PRODUCT_CONTAINER_SELECTOR,
             "wait_timeout_ms": None,
             "wait_until": None,
         }
     ]
     assert links == [
-        "https://www.artfinder.com/product/a-windswept-walk/",
-        "https://www.artfinder.com/product/soft-light-kew-gardens-an-atmospheric-oil-painting/",
-        "https://www.artfinder.com/product/shoreline-2024-oil-painting/",
-        "https://www.artfinder.com/product/blue-horizon-limited-edition/",
-        "https://www.artfinder.com/product/coastal-sketch-original-drawing/",
-        "https://www.artfinder.com/product/moonlit-field-oil-on-board/",
+        "https://www.artfinder.com/product/echoes-of-dawn-canvas/",
+        "https://www.artfinder.com/product/lantern-glow-atrium-study/",
+        "https://www.artfinder.com/product/prism-tide-harbor-series/",
+        "https://www.artfinder.com/product/blue-horizon-limited-series/",
+        "https://www.artfinder.com/product/coastal-sketch-studio-proof/",
+        "https://www.artfinder.com/product/moonlit-field-nightscape/",
     ]
     assert len(links) == len(set(links))
 
@@ -193,7 +193,7 @@ def test_collect_listing_product_links_without_polite_wrapper() -> None:
         <main>
           <section data-testid=\"product-grid\">
             <article>
-              <a href=\"/product/a-windswept-walk/\">A Windswept Walk</a>
+              <a href=\"/product/echoes-of-dawn-canvas/\">Echoes of Dawn</a>
             </article>
           </section>
         </main>
@@ -204,14 +204,14 @@ def test_collect_listing_product_links_without_polite_wrapper() -> None:
 
     links = asyncio.run(
         collect_listing_product_links(
-            "https://www.artfinder.com/artist/lizziebutler/sort-newest/",
+            "https://www.artfinder.com/artist/example-artist/sort-newest/",
             page,
         )
     )
 
     assert page.goto_calls == [
         {
-            "url": "https://www.artfinder.com/artist/lizziebutler/sort-newest/",
+            "url": "https://www.artfinder.com/artist/example-artist/sort-newest/",
             "wait_until": "networkidle",
         }
     ]
@@ -222,5 +222,5 @@ def test_collect_listing_product_links_without_polite_wrapper() -> None:
         }
     ]
     assert links == [
-        "https://www.artfinder.com/product/a-windswept-walk/",
+        "https://www.artfinder.com/product/echoes-of-dawn-canvas/",
     ]
