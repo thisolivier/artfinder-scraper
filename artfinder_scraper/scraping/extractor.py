@@ -43,7 +43,10 @@ def _truncate_description_text(text: str) -> Optional[str]:
 
     earliest_match_index: Optional[int] = None
     for prefix in STOP_DESCRIPTION_PREFIXES:
-        pattern = re.compile(rf"(?m)^[\s]*{re.escape(prefix)}")
+        pattern = re.compile(
+            rf"(?<!\S){re.escape(prefix)}",
+            flags=re.IGNORECASE,
+        )
         match = pattern.search(text)
         if match:
             if earliest_match_index is None or match.start() < earliest_match_index:
