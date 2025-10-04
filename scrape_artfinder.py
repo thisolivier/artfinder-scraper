@@ -15,6 +15,7 @@ from artfinder_scraper.scraping.downloader import (
 )
 from artfinder_scraper.scraping.extractor import extract_artwork_fields
 from artfinder_scraper.scraping.indexer import collect_listing_product_links
+from artfinder_scraper.scraping.runner import DEFAULT_LISTING_URL, ScraperRunner
 
 
 try:
@@ -95,6 +96,48 @@ def list_page(
 
     for product_url in product_links:
         typer.echo(product_url)
+
+
+@app.command("run")
+def run_pipeline(
+    limit: Optional[int] = typer.Option(
+        None,
+        "--limit",
+        help="Number of items to process before stopping.",
+    ),
+    listing_url: str = typer.Option(
+        DEFAULT_LISTING_URL,
+        "--listing-url",
+        help="Listing URL to crawl for product links.",
+    ),
+    jsonl_path: Optional[Path] = typer.Option(
+        None,
+        "--jsonl-path",
+        help="Location where JSONL records should be written.",
+    ),
+    rate_limit: float = typer.Option(
+        1.0,
+        "--rate-limit",
+        help="Minimum delay (in seconds) between detail page fetches.",
+    ),
+) -> None:
+    """Execute the end-to-end scraping pipeline for a limited number of items."""
+
+    runner = ScraperRunner(
+        listing_url=listing_url,
+        jsonl_path=jsonl_path,
+        rate_limit_seconds=rate_limit,
+    )
+
+    processed_artworks = runner.run(max_items=limit)
+    typer.echo(
+        f"Processed {len(processed_artworks)} artwork(s); records appended to {runner.jsonl_path}"
+    )
+
+    if runner.errors:
+        typer.echo("Encountered the following errors:", err=True)
+        for error in runner.errors:
+            typer.echo(f"- [{error.stage}] {error.product_url}: {error.message}", err=True)
 
 
 def main() -> None:

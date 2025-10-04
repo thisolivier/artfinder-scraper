@@ -32,6 +32,23 @@ https://www.artfinder.com/product/shoreline-2024-oil-painting/
 
 The URLs are deduplicated and normalized by slug so downstream crawlers can feed them directly into the detail-page workflow.
 
+## Run the orchestration pipeline
+
+A smoke-test `run` command wires the orchestrator together so you can validate end-to-end progress without writing custom scripts. It paginates through the configured listing, fetches each detail page, normalizes records, downloads images, and appends JSONL rows under `artfinder_scraper/data/artworks.jsonl` by default.
+
+```bash
+python scrape_artfinder.py run --limit 3 --rate-limit 1.5
+```
+
+Key options:
+
+* `--limit` – cap how many artworks are processed during the run (omit to crawl the entire listing).
+* `--listing-url` – change which artist listing is crawled.
+* `--jsonl-path` – store the JSONL output somewhere other than the default project location.
+* `--rate-limit` – control the minimum delay between detail page fetches.
+
+The command prints a one-line summary when complete and lists any recoverable errors that were skipped along the way so you can iterate on extraction fidelity.
+
 ## Continuous integration
 
 All pull requests trigger the GitHub Actions workflow defined in `.github/workflows/test.yml`. The workflow installs the project's Python
