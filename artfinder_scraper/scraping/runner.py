@@ -61,6 +61,7 @@ class ScraperRunner:
         spreadsheet_writer: Callable[[Artwork, Path], bool] | None = None,
         skip_slugs: Iterable[str] | None = None,
         persist_outputs: bool = True,
+        download_images: bool = True,
     ) -> None:
         self.listing_url = listing_url
         self.fetch_html = fetch_html
@@ -80,6 +81,7 @@ class ScraperRunner:
         self.spreadsheet_writer = spreadsheet_writer or append_artwork_to_spreadsheet
         self.skip_slugs: set[str] = {slug.strip() for slug in skip_slugs or [] if slug.strip()}
         self.persist_outputs = persist_outputs
+        self.download_images = download_images
         self.errors: list[RunnerError] = []
 
     async def crawl(self, *, max_items: int | None = None) -> list[Artwork]:
@@ -119,7 +121,7 @@ class ScraperRunner:
                     self._record_error(product_url, "extract", error)
                     continue
 
-                if self.persist_outputs:
+                if self.persist_outputs and self.download_images:
                     try:
                         artwork = self._download_artwork_image(artwork)
                     except ImageDownloadError as error:

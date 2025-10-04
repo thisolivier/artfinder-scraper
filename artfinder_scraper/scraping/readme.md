@@ -68,6 +68,9 @@ can feed them directly into the detail-page workflow.
 Run `python scrape_artfinder.py run` to execute the full pipeline. The command
 now accepts `--dry-run` to exercise listing pagination, parsing, and
 normalization without downloading images or mutating the JSONL/Excel outputs.
+Use `--skip-images` to keep writing JSONL/Excel data while bypassing the
+downloader, which is helpful when the spreadsheet is the only required output
+or when bandwidth is limited.
 
 Resume a previously interrupted crawl with `python scrape_artfinder.py resume`.
 It reads the JSONL archive to collect processed slugs, skips those URLs, and
