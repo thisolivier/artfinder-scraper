@@ -51,6 +51,29 @@ Key options:
 
 The command prints a one-line summary when complete and lists any recoverable errors that were skipped along the way so you can iterate on extraction fidelity.
 
+## Spreadsheet export
+
+Each successful scrape run also maintains an Excel workbook at
+`artfinder_scraper/data/artworks.xlsx`. Rows are appended in slug/title order
+while ensuring duplicates are skipped when either identifier already exists in
+the sheet. Images are embedded in the first column and resized so their longest
+edge fits within roughly 320 pixels to keep the document compact. The remaining
+columns appear in the following order:
+
+1. image (embedded thumbnail)
+2. title
+3. size
+4. medium
+5. materials used
+6. price (prefixed with £)
+7. description
+8. status (`sold` or `for sale`)
+9. art finder link (hyperlinked to the source URL)
+
+The workbook lives alongside the JSONL archive, making it easy to distribute a
+human-friendly catalog while preserving normalized records for downstream
+automation.
+
 ## Continuous integration
 
 All pull requests trigger the GitHub Actions workflow defined in `.github/workflows/test.yml`. The workflow installs the project's Python

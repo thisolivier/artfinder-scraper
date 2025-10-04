@@ -19,6 +19,7 @@ from .extractor import extract_artwork_fields
 from .indexer import iter_listing_product_urls
 from .models import Artwork, ValidationError
 from .normalize import normalize_artwork
+from .spreadsheet import append_artwork_to_spreadsheet
 
 DEFAULT_LISTING_URL: str = "https://www.artfinder.com/artist/lizziebutler/sort-newest/"
 
@@ -36,6 +37,7 @@ class ScraperRunner:
     """Coordinate the high-level scraping pipeline end-to-end."""
 
     DEFAULT_JSONL_PATH: Path = Path(__file__).resolve().parents[1] / "data" / "artworks.jsonl"
+    DEFAULT_SPREADSHEET_PATH: Path = Path(__file__).resolve().parents[1] / "data" / "artworks.xlsx"
 
     def __init__(
         self,
@@ -50,10 +52,12 @@ class ScraperRunner:
         ] = iter_listing_product_urls,
         page_factory: Callable[[], Any] = chromium_page,
         jsonl_path: Path | None = None,
+        spreadsheet_path: Path | None = None,
         rate_limit_seconds: float = 0.0,
         sleep_function: Callable[[float], Awaitable[None]] = asyncio.sleep,
         time_function: Callable[[], float] = time.monotonic,
         logger: logging.Logger | None = None,
+        spreadsheet_writer: Callable[[Artwork, Path], bool] | None = None,
     ) -> None:
         self.listing_url = listing_url
         self.fetch_html = fetch_html
@@ -63,10 +67,14 @@ class ScraperRunner:
         self.listing_iterator = listing_iterator
         self.page_factory = page_factory
         self.jsonl_path = Path(jsonl_path) if jsonl_path else self.DEFAULT_JSONL_PATH
+        self.spreadsheet_path = (
+            Path(spreadsheet_path) if spreadsheet_path else self.DEFAULT_SPREADSHEET_PATH
+        )
         self.rate_limit_seconds = max(rate_limit_seconds, 0.0)
         self.sleep_function = sleep_function
         self.time_function = time_function
         self.logger = logger or logging.getLogger(__name__)
+        self.spreadsheet_writer = spreadsheet_writer or append_artwork_to_spreadsheet
         self.errors: list[RunnerError] = []
 
     async def crawl(self, *, max_items: int | None = None) -> list[Artwork]:
@@ -78,6 +86,7 @@ class ScraperRunner:
         last_request_timestamp: float | None = None
 
         self.jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+        self.spreadsheet_path.parent.mkdir(parents=True, exist_ok=True)
 
         async with self.page_factory() as page:
             async for product_url in self._iter_product_urls(page):
@@ -117,6 +126,11 @@ class ScraperRunner:
                 except OSError as error:
                     self._record_error(product_url, "persist", error)
                     continue
+
+                try:
+                    self.spreadsheet_writer(artwork, self.spreadsheet_path)
+                except Exception as error:  # pragma: no cover - spreadsheet errors handled gracefully
+                    self._record_error(product_url, "spreadsheet", error)
 
                 processed_artworks.append(artwork)
                 processed_count += 1
@@ -195,4 +209,9 @@ class ScraperRunner:
         self.errors.append(RunnerError(product_url=product_url, stage=stage, message=str(error)))
 
 
-__all__ = ["ScraperRunner", "RunnerError", "DEFAULT_LISTING_URL"]
+__all__ = [
+    "ScraperRunner",
+    "RunnerError",
+    "DEFAULT_LISTING_URL",
+    "DEFAULT_SPREADSHEET_PATH",
+]
