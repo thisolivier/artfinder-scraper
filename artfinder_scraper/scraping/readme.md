@@ -14,8 +14,9 @@ command-line workflow to download and process Artfinder artwork pages.
 * `models.py` defines the `Artwork` schema used across the scraping
   workflow, handling GBP price normalization, slug derivation from
   `/product/<slug>/` URLs, and timestamping when a record was scraped.
-* `indexer.py` navigates listing pages with a Playwright page handle and
-  extracts canonical `/product/` links while removing duplicates.
+* `indexer.py` navigates listing pages with a Playwright page handle,
+  iterates through pagination, and yields canonical `/product/` links
+  while removing duplicates across pages and logging crawl progress.
 * `downloader.py`, `normalize.py`, `spreadsheet.py`, and
   `runner.py` are placeholders for the upcoming pagination, normalization, and
   orchestration layers described in the project spec.

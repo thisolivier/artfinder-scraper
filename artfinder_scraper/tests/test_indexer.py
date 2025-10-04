@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+import logging
 from typing import Any, Dict, List
 
 from artfinder_scraper.scraping.indexer import (
     LISTING_PRODUCT_CONTAINER_SELECTOR,
+    iter_listing_product_urls,
     collect_listing_product_links,
 )
 
@@ -40,6 +42,35 @@ class DummyPolitePage:
         return self.html
 
 
+class DummyPaginatedPage:
+    def __init__(self, pages: Dict[str, str]) -> None:
+        self.pages = pages
+        self.current_url: str | None = None
+        self.goto_calls: List[Dict[str, Any]] = []
+
+    async def goto_and_wait(
+        self,
+        url: str,
+        *,
+        wait_for_selector: str | None = None,
+        wait_timeout_ms: int | None = None,
+        wait_until: str | None = None,
+    ) -> None:
+        self.current_url = url
+        self.goto_calls.append(
+            {
+                "url": url,
+                "wait_for_selector": wait_for_selector,
+                "wait_timeout_ms": wait_timeout_ms,
+                "wait_until": wait_until,
+            }
+        )
+
+    async def content(self) -> str:
+        assert self.current_url is not None
+        return self.pages[self.current_url]
+
+
 def test_collect_listing_product_links_deduplicates_and_normalizes() -> None:
     html = (FIXTURES_DIR / "lizzie_butler_listing.html").read_text(encoding="utf-8")
     page = DummyPolitePage(html)
@@ -68,6 +99,71 @@ def test_collect_listing_product_links_deduplicates_and_normalizes() -> None:
         "https://www.artfinder.com/product/moonlit-field-oil-on-board/",
     ]
     assert len(links) == len(set(links))
+
+
+def test_iter_listing_product_urls_paginates_until_exhausted(caplog) -> None:
+    listing_url = "https://www.artfinder.com/artist/example/sort-newest/"
+    pages = {
+        listing_url: (
+            FIXTURES_DIR / "listing_page_one.html"
+        ).read_text(encoding="utf-8"),
+        "https://www.artfinder.com/artist/example/sort-newest/?page=2": (
+            FIXTURES_DIR / "listing_page_two.html"
+        ).read_text(encoding="utf-8"),
+        "https://www.artfinder.com/artist/example/sort-newest/?page=3": (
+            FIXTURES_DIR / "listing_page_three.html"
+        ).read_text(encoding="utf-8"),
+    }
+
+    page = DummyPaginatedPage(pages)
+
+    async def collect_all() -> List[str]:
+        caplog.set_level(logging.INFO)
+        results: List[str] = []
+        async for url in iter_listing_product_urls(listing_url, page):
+            results.append(url)
+        return results
+
+    urls = asyncio.run(collect_all())
+
+    assert urls == [
+        "https://www.artfinder.com/product/first-item/",
+        "https://www.artfinder.com/product/second-item/",
+        "https://www.artfinder.com/product/third-item/",
+        "https://www.artfinder.com/product/fourth-item/",
+    ]
+
+    assert page.goto_calls == [
+        {
+            "url": listing_url,
+            "wait_for_selector": LISTING_PRODUCT_CONTAINER_SELECTOR,
+            "wait_timeout_ms": None,
+            "wait_until": None,
+        },
+        {
+            "url": "https://www.artfinder.com/artist/example/sort-newest/?page=2",
+            "wait_for_selector": LISTING_PRODUCT_CONTAINER_SELECTOR,
+            "wait_timeout_ms": None,
+            "wait_until": None,
+        },
+        {
+            "url": "https://www.artfinder.com/artist/example/sort-newest/?page=3",
+            "wait_for_selector": LISTING_PRODUCT_CONTAINER_SELECTOR,
+            "wait_timeout_ms": None,
+            "wait_until": None,
+        },
+    ]
+
+    info_messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == "artfinder_scraper.scraping.indexer"
+    ]
+    assert info_messages == [
+        "Processed listing page 1 (2 new items)",
+        "Processed listing page 2 (1 new items)",
+        "Processed listing page 3 (1 new items)",
+    ]
 
 
 class DummyRawPage:
