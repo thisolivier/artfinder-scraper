@@ -27,6 +27,18 @@ def _normalize_whitespace(text: str) -> str:
 
 
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
+    product_original = soup.find("div", id="product-original")
+    if product_original:
+        header = product_original.find("h1")
+        if header:
+            title_span = header.find("span", class_="title")
+            if title_span:
+                title_text = _normalize_whitespace(
+                    title_span.get_text(" ", strip=True)
+                )
+                if title_text:
+                    return title_text
+
     candidate_headers: Iterable[Tag] = soup.find_all(["h1", "h2"])
     for header in candidate_headers:
         text = header.get_text(strip=True)
@@ -49,10 +61,54 @@ def _collect_text_nodes(nodes: Iterable[Tag]) -> List[str]:
     return pieces
 
 
+def _parse_artwork_description_section(
+    soup: BeautifulSoup,
+) -> tuple[Optional[str], Optional[str]]:
+    def _has_artwork_description_class(value: object) -> bool:
+        if isinstance(value, list):
+            return "artwork-description" in value
+        if isinstance(value, str):
+            return "artwork-description" in value.split()
+        return False
+
+    description_container = soup.find(
+        class_=lambda value: _has_artwork_description_class(value)
+    )
+    if not description_container:
+        return None, None
+
+    paragraphs: List[str] = []
+    heading_seen = False
+    for element in description_container.descendants:
+        if isinstance(element, Tag):
+            if element.name == "h5" and not heading_seen:
+                heading_seen = True
+                continue
+            if heading_seen and element.name == "p":
+                text = _normalize_whitespace(element.get_text(" ", strip=True))
+                if text:
+                    paragraphs.append(text)
+
+    if not paragraphs:
+        return None, None
+
+    description_text = paragraphs[0]
+    materials_text = paragraphs[1] if len(paragraphs) > 1 else None
+    return description_text, materials_text
+
+
 def _extract_description(soup: BeautifulSoup) -> Optional[str]:
-    heading_candidates = soup.find_all(string=re.compile(DESCRIPTION_HEADING, re.IGNORECASE))
+    description_text, _ = _parse_artwork_description_section(soup)
+    if description_text:
+        return description_text
+
+    heading_candidates = soup.find_all(
+        string=re.compile(DESCRIPTION_HEADING, re.IGNORECASE)
+    )
     for heading_text in heading_candidates:
-        heading_element = heading_text.parent if isinstance(heading_text, NavigableString) else heading_text
+        heading_element = (
+            heading_text.parent if isinstance(heading_text, NavigableString) else heading_text
+        )
         if not isinstance(heading_element, Tag):
             continue
         paragraphs: List[str] = []
@@ -71,14 +127,23 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
                     # Stop once we reach the specifications/metadata panels
                     break
                 if sibling.name in {"p", "div", "section"}:
-                    paragraphs.extend(_collect_text_nodes(sibling.find_all("p")) or [_normalize_whitespace(sibling.get_text(" ", strip=True))])
-        cleaned_paragraphs = [para for para in (_normalize_whitespace(p) for p in paragraphs) if para]
+                    paragraphs.extend(
+                        _collect_text_nodes(sibling.find_all("p"))
+                        or [_normalize_whitespace(sibling.get_text(" ", strip=True))]
+                    )
+        cleaned_paragraphs = [
+            para for para in (_normalize_whitespace(p) for p in paragraphs) if para
+        ]
         if cleaned_paragraphs:
             return "\n\n".join(cleaned_paragraphs)
     return None
 
 
 def _extract_materials_used(soup: BeautifulSoup) -> Optional[str]:
+    _, materials_text = _parse_artwork_description_section(soup)
+    if materials_text:
+        return materials_text
+
     for heading in soup.find_all("h5", class_="header-art"):
         heading_text = heading.get_text(" ", strip=True)
         if "material" not in heading_text.lower():

@@ -6,13 +6,14 @@ command-line workflow to download and process Artfinder artwork pages.
 * `browsers.py` exposes `fetch_page_html`, a thin Playwright wrapper that
   requests a detail page with the required user agent and politeness delay.
 * `extractor.py` parses the rendered HTML into a dictionary of raw field
-  values that higher-level flows can normalize later on, including
-  consolidating size metadata from `product-attributes` spans while
-  stripping inert comment fragments from the collected text. It also
-  captures the "materials used" copy surfaced beneath the dedicated
-  `header-art` heading even when other `header-art` elements precede it,
-  flattening hyperlinks to plain text. The extractor now materializes an
-  `Artwork` pydantic model so that downstream components receive
+  values that higher-level flows can normalize later on. It now targets the
+  dedicated `#product-original h1 .title` span for the artwork name and
+  reads description plus materials copy from the structured
+  `.artwork-description` section while still falling back to legacy markup.
+  The extractor continues consolidating size metadata from
+  `product-attributes` spans, stripping inert comment fragments from the
+  collected text, and flattening hyperlinks to plain text. Parsed values are
+  materialized as an `Artwork` pydantic model so downstream components receive
   validated, typed data.
 * `models.py` defines the `Artwork` schema used across the scraping
   workflow, handling GBP price normalization, slug derivation from
