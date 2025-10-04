@@ -26,18 +26,26 @@ def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _extract_title(soup: BeautifulSoup) -> Optional[str]:
+def _find_product_header(soup: BeautifulSoup) -> Optional[Tag]:
     product_original = soup.find("div", id="product-original")
-    if product_original:
-        header = product_original.find("h1")
-        if header:
-            title_span = header.find("span", class_="title")
-            if title_span:
-                title_text = _normalize_whitespace(
-                    title_span.get_text(" ", strip=True)
-                )
-                if title_text:
-                    return title_text
+    if not product_original:
+        return None
+    header = product_original.find("h1")
+    if isinstance(header, Tag):
+        return header
+    return None
+
+
+def _extract_title(soup: BeautifulSoup) -> Optional[str]:
+    header = _find_product_header(soup)
+    if header:
+        title_span = header.find("span", class_="title")
+        if title_span:
+            title_text = _normalize_whitespace(
+                title_span.get_text(" ", strip=True)
+            )
+            if title_text:
+                return title_text
 
     candidate_headers: Iterable[Tag] = soup.find_all(["h1", "h2"])
     for header in candidate_headers:
@@ -59,6 +67,28 @@ def _collect_text_nodes(nodes: Iterable[Tag]) -> List[str]:
         if text:
             pieces.append(text)
     return pieces
+
+
+def _extract_medium(soup: BeautifulSoup) -> Optional[str]:
+    header = _find_product_header(soup)
+    if not header:
+        return None
+
+    subtitle_span = header.find("span", class_="subtitle")
+    if not subtitle_span:
+        subtitle_span = header.find("span", class_="medium")
+    if not subtitle_span:
+        return None
+
+    subtitle_text = subtitle_span.get_text("\n", strip=True)
+    if not subtitle_text:
+        return None
+
+    for line in subtitle_text.splitlines():
+        cleaned = _normalize_whitespace(line)
+        if cleaned:
+            return cleaned
+    return None
 
 
 def _parse_artwork_description_section(
@@ -256,6 +286,7 @@ def extract_artwork_fields(html: str, source_url: str) -> Artwork:
     description = _extract_description(soup)
     price_text = _extract_price_text(soup)
     size = _extract_size_text(soup)
+    medium = _extract_medium(soup)
     sold = _extract_sold_state(soup)
     image_url = _extract_image_url(soup, title)
     materials_used = _extract_materials_used(soup)
@@ -265,6 +296,7 @@ def extract_artwork_fields(html: str, source_url: str) -> Artwork:
         description=description,
         price_gbp=price_text,
         size=size,
+        medium=medium,
         sold=sold,
         image_url=image_url,
         materials_used=materials_used,

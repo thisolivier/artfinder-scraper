@@ -46,6 +46,7 @@ def test_extract_artwork_fields_for_available_item() -> None:
     )
     assert artwork.price_gbp and artwork.price_gbp == 475
     assert artwork.size == "46 x 46 x 2cm (unframed)"
+    assert artwork.medium == "Oil painting"
     assert artwork.sold is False
     assert (
         str(artwork.image_url)
@@ -78,6 +79,7 @@ def test_extract_artwork_fields_handles_sold_item_with_missing_depth() -> None:
     )
     assert artwork.price_gbp is None
     assert artwork.size == "30 x 40 cm"
+    assert artwork.medium == "Original painting"
     assert artwork.sold is True
     assert (
         str(artwork.image_url)
@@ -105,6 +107,7 @@ def test_extract_artwork_fields_handles_artwork_description_section() -> None:
         artwork.description
         == "A shimmering horizon captures the rhythm of the shoreline."
     )
+    assert artwork.medium == "Oil on canvas"
     assert (
         artwork.materials_used
         == "Oil, pastel and charcoal layered on primed canvas."
