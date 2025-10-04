@@ -8,6 +8,10 @@ from typing import Optional
 import typer
 
 from artfinder_scraper.scraping.browsers import fetch_page_html
+from artfinder_scraper.scraping.downloader import (
+    ArtworkImageDownloader,
+    ImageDownloadError,
+)
 from artfinder_scraper.scraping.extractor import extract_artwork_fields
 
 
@@ -34,6 +38,12 @@ def fetch_item(
         "-o",
         help="File to write the rendered HTML to.",
     ),
+    download_image: bool = typer.Option(
+        False,
+        "--download-image",
+        help="Download the primary artwork image after extraction.",
+        is_flag=True,
+    ),
 ) -> None:
     """Fetch a single item URL and emit the rendered HTML."""
 
@@ -44,6 +54,18 @@ def fetch_item(
         typer.echo(f"Saved HTML to {output}")
 
     artwork = extract_artwork_fields(html_content, url)
+
+    if download_image:
+        downloader = ArtworkImageDownloader()
+        try:
+            artwork = downloader.download_artwork_image(artwork)
+            if artwork.image_path:
+                typer.echo(f"Saved image to {artwork.image_path}")
+            else:
+                typer.echo("Artwork did not include an image URL; nothing downloaded.")
+        except ImageDownloadError as error:
+            typer.echo(f"Failed to download image: {error}", err=True)
+
     typer.echo("Parsed fields:")
     if hasattr(artwork, "model_dump"):
         serialized = artwork.model_dump()

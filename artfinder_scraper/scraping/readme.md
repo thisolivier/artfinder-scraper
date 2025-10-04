@@ -14,9 +14,12 @@ command-line workflow to download and process Artfinder artwork pages.
 * `models.py` defines the `Artwork` schema used across the scraping
   workflow, handling GBP price normalization, slug derivation from
   `/product/<slug>/` URLs, and timestamping when a record was scraped.
-* `downloader.py`, `indexer.py`, `normalize.py`, `spreadsheet.py`, and
-  `runner.py` are placeholders for the upcoming pagination, normalization, and
-  orchestration layers described in the project spec.
+* `downloader.py` provides `ArtworkImageDownloader`, a retrying HTTP client
+  that stores validated image responses under `out/images/` while populating
+  each `Artwork.image_path` for downstream consumers. `indexer.py`,
+  `normalize.py`, `spreadsheet.py`, and `runner.py` remain placeholders for the
+  upcoming pagination, normalization, and orchestration layers described in the
+  project spec.
 
 ## Fetching a single artwork
 
