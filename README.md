@@ -31,3 +31,8 @@ https://www.artfinder.com/product/shoreline-2024-oil-painting/
 ```
 
 The URLs are deduplicated and normalized by slug so downstream crawlers can feed them directly into the detail-page workflow.
+
+## Continuous integration
+
+All pull requests trigger the GitHub Actions workflow defined in `.github/workflows/test.yml`. The workflow installs the project's Python
+dependencies along with `pytest` before executing the full test suite to guard against regressions before merges.
