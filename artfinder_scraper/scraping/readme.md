@@ -9,10 +9,11 @@ command-line workflow to download and process Artfinder artwork pages.
   values that higher-level flows can normalize later on, including
   consolidating size metadata from `product-attributes` spans while
   stripping inert comment fragments from the collected text. It also
-  captures the "materials used" copy surfaced beneath the `header-art`
-  heading, flattening hyperlinks to plain text. The extractor now
-  materializes an `Artwork` pydantic model so that downstream components
-  receive validated, typed data.
+  captures the "materials used" copy surfaced beneath the dedicated
+  `header-art` heading even when other `header-art` elements precede it,
+  flattening hyperlinks to plain text. The extractor now materializes an
+  `Artwork` pydantic model so that downstream components receive
+  validated, typed data.
 * `models.py` defines the `Artwork` schema used across the scraping
   workflow, handling GBP price normalization, slug derivation from
   `/product/<slug>/` URLs, and timestamping when a record was scraped.

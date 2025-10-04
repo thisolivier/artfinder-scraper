@@ -79,19 +79,20 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
 
 
 def _extract_materials_used(soup: BeautifulSoup) -> Optional[str]:
-    heading = soup.find("h5", class_="header-art")
-    if not heading:
-        return None
-
-    for sibling in heading.next_siblings:
-        if isinstance(sibling, NavigableString):
+    for heading in soup.find_all("h5", class_="header-art"):
+        heading_text = heading.get_text(" ", strip=True)
+        if "material" not in heading_text.lower():
             continue
-        if isinstance(sibling, Tag):
-            if sibling.name == "p":
-                text = sibling.get_text(" ", strip=True)
-                cleaned = _normalize_whitespace(text)
-                return cleaned or None
-            break
+
+        for sibling in heading.next_siblings:
+            if isinstance(sibling, NavigableString):
+                continue
+            if isinstance(sibling, Tag):
+                if sibling.name == "p":
+                    text = sibling.get_text(" ", strip=True)
+                    cleaned = _normalize_whitespace(text)
+                    return cleaned or None
+                break
     return None
 
 
