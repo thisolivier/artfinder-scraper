@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from artfinder_scraper.scraping.models import Artwork
 
 
-TITLE_ARTIST = "example artist"
 DESCRIPTION_HEADING = "original artwork description"
 ADD_TO_BASKET_TEXT = "add to basket"
 SOLD_INDICATORS = ("this artwork is sold", "sold out", "sold")
@@ -20,6 +19,7 @@ MEDIUM_TRAILING_PATTERN = re.compile(
     r"\b(?:oil|acrylic|mixed media|ink|watercolour|watercolor|gouache|charcoal|pastel|print|painting|drawing|photograph|sculpture|artwork|original)\b.*$",
     flags=re.IGNORECASE,
 )
+BY_FRAGMENT_PATTERN = re.compile(r"\s+by\s+.*$", flags=re.IGNORECASE)
 
 
 def _normalize_whitespace(text: str) -> str:
@@ -68,6 +68,23 @@ def _find_product_header(soup: BeautifulSoup) -> Optional[Tag]:
     return None
 
 
+def _clean_title_candidate(text: str) -> Optional[str]:
+    candidate = _normalize_whitespace(text)
+    if not candidate:
+        return None
+
+    lowered = candidate.lower()
+    if DESCRIPTION_HEADING in lowered:
+        return None
+
+    candidate = YEAR_PAREN_PATTERN.sub("", candidate)
+    candidate = MEDIUM_TRAILING_PATTERN.sub("", candidate)
+    candidate = BY_FRAGMENT_PATTERN.sub("", candidate)
+    candidate = candidate.strip(" -–|:,")
+    candidate = _normalize_whitespace(candidate)
+    return candidate or None
+
+
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
     header = _find_product_header(soup)
     if header:
@@ -81,14 +98,21 @@ def _extract_title(soup: BeautifulSoup) -> Optional[str]:
 
     candidate_headers: Iterable[Tag] = soup.find_all(["h1", "h2"])
     for header in candidate_headers:
-        text = header.get_text(strip=True)
-        if TITLE_ARTIST in text.lower():
-            prefix = text.split(" by ", 1)[0]
-            prefix = YEAR_PAREN_PATTERN.sub("", prefix)
-            prefix = MEDIUM_TRAILING_PATTERN.sub("", prefix).strip()
-            cleaned = _normalize_whitespace(prefix)
-            if cleaned:
-                return cleaned
+        text = header.get_text(" ", strip=True)
+        cleaned = _clean_title_candidate(text)
+        if cleaned:
+            return cleaned
+
+    meta_tag = soup.find("meta", attrs={"property": "og:title"})
+    if meta_tag and meta_tag.get("content"):
+        cleaned = _clean_title_candidate(meta_tag["content"])
+        if cleaned:
+            return cleaned
+
+    if soup.title and soup.title.string:
+        cleaned = _clean_title_candidate(soup.title.string)
+        if cleaned:
+            return cleaned
     return None
 
 
