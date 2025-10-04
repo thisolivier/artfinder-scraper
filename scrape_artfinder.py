@@ -15,6 +15,7 @@ from artfinder_scraper.scraping.downloader import (
 )
 from artfinder_scraper.scraping.extractor import extract_artwork_fields
 from artfinder_scraper.scraping.indexer import collect_listing_product_links
+from artfinder_scraper.scraping.runner import DEFAULT_LISTING_URL, ScraperRunner
 
 
 try:
@@ -95,6 +96,34 @@ def list_page(
 
     for product_url in product_links:
         typer.echo(product_url)
+
+
+@app.command("run")
+def run_pipeline(
+    limit: Optional[int] = typer.Option(
+        None,
+        "--limit",
+        help="Number of items to process before stopping.",
+    ),
+    listing_url: str = typer.Option(
+        DEFAULT_LISTING_URL,
+        "--listing-url",
+        help="Listing URL to crawl for product links.",
+    ),
+) -> None:
+    """Execute the end-to-end scraping pipeline for a limited number of items."""
+
+    runner = ScraperRunner(listing_url=listing_url)
+
+    processed_artworks = asyncio.run(runner.crawl(max_items=limit))
+    typer.echo(
+        f"Processed {len(processed_artworks)} artwork(s); records appended to {runner.jsonl_path}"
+    )
+
+    if runner.errors:
+        typer.echo("Encountered the following errors:", err=True)
+        for error in runner.errors:
+            typer.echo(f"- [{error.stage}] {error.product_url}: {error.message}", err=True)
 
 
 def main() -> None:

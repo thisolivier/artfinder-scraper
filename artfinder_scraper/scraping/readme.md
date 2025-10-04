@@ -20,15 +20,14 @@ command-line workflow to download and process Artfinder artwork pages.
 * `indexer.py` navigates listing pages with a Playwright page handle,
   iterates through pagination, and yields canonical `/product/` links
   while removing duplicates across pages and logging crawl progress.
-* `downloader.py`, `normalize.py`, `spreadsheet.py`, and
-  `runner.py` are placeholders for the upcoming pagination, normalization, and
-  orchestration layers described in the project spec.
 * `downloader.py` provides `ArtworkImageDownloader`, a retrying HTTP client
   that stores validated image responses under `out/images/` while populating
-  each `Artwork.image_path` for downstream consumers. `indexer.py`,
-  `normalize.py`, `spreadsheet.py`, and `runner.py` remain placeholders for the
-  upcoming pagination, normalization, and orchestration layers described in the
-  project spec.
+  each `Artwork.image_path` for downstream consumers.
+* `normalize.py` contains helpers that convert the pydantic `Artwork` model
+  into JSON-serializable dictionaries for archival storage.
+* `runner.py` implements `ScraperRunner`, the orchestrator that walks listing
+  pagination, fetches detail pages, normalizes the resulting records, downloads
+  imagery, and appends JSONL entries.
 
 ## Fetching a single artwork
 
