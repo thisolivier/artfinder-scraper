@@ -35,6 +35,10 @@ class Artwork(BaseModel):
         default=None,
         description="Raw size text such as '46 x 46 x 2cm (unframed)'.",
     )
+    medium: str | None = Field(
+        default=None,
+        description="Medium listed alongside the artwork title on the detail page.",
+    )
     sold: bool = Field(..., description="Whether the artwork is sold or unavailable.")
     image_url: HttpUrl | None = Field(
         default=None,
@@ -67,7 +71,14 @@ class Artwork(BaseModel):
             raise ValueError("title must not be empty")
         return cleaned
 
-    @validator("description", "size", "image_path", "materials_used", pre=True)
+    @validator(
+        "description",
+        "size",
+        "medium",
+        "image_path",
+        "materials_used",
+        pre=True,
+    )
     def _strip_optional_fields(cls, value: Any) -> Any:
         """Collapse blank optional strings to ``None``."""
 

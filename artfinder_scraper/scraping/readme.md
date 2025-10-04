@@ -7,8 +7,9 @@ command-line workflow to download and process Artfinder artwork pages.
   requests a detail page with the required user agent and politeness delay.
 * `extractor.py` parses the rendered HTML into a dictionary of raw field
   values that higher-level flows can normalize later on. It now targets the
-  dedicated `#product-original h1 .title` span for the artwork name and
-  reads description plus materials copy from the structured
+  dedicated `#product-original h1 .title` span for the artwork name,
+  captures the medium from the paired subtitle block, and reads description
+  plus materials copy from the structured
   `.artwork-description` section while still falling back to legacy markup.
   The extractor continues consolidating size metadata from
   `product-attributes` spans, stripping inert comment fragments from the
