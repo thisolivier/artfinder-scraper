@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from artfinder_scraper.scraping.models import Artwork
 
 
-TITLE_ARTIST = "example artist"
 DESCRIPTION_HEADING = "original artwork description"
 ADD_TO_BASKET_TEXT = "add to basket"
 SOLD_INDICATORS = ("this artwork is sold", "sold out", "sold")
@@ -20,10 +19,43 @@ MEDIUM_TRAILING_PATTERN = re.compile(
     r"\b(?:oil|acrylic|mixed media|ink|watercolour|watercolor|gouache|charcoal|pastel|print|painting|drawing|photograph|sculpture|artwork|original)\b.*$",
     flags=re.IGNORECASE,
 )
+BY_FRAGMENT_PATTERN = re.compile(r"\s+by\s+.*$", flags=re.IGNORECASE)
 
 
 def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+STOP_DESCRIPTION_PREFIXES = (
+    "This piece is signed",
+    "All artwork is carefully wrapped",
+    "Tracking Code",
+    "Ready to hang",
+    "Lizzie Butler is a ",
+    "She has exhibited ",
+    "Painted in oil on a stretched canvas.",
+    "Strung and ready to",
+)
+
+
+def _truncate_description_text(text: str) -> Optional[str]:
+    """Remove marketing boilerplate sentences from the description."""
+
+    earliest_match_index: Optional[int] = None
+    for prefix in STOP_DESCRIPTION_PREFIXES:
+        pattern = re.compile(rf"(?m)^[\s]*{re.escape(prefix)}")
+        match = pattern.search(text)
+        if match:
+            if earliest_match_index is None or match.start() < earliest_match_index:
+                earliest_match_index = match.start()
+
+    if earliest_match_index is None:
+        return text
+
+    truncated = text[:earliest_match_index].rstrip()
+    if truncated:
+        return truncated
+    return None
 
 
 def _find_product_header(soup: BeautifulSoup) -> Optional[Tag]:
@@ -34,6 +66,23 @@ def _find_product_header(soup: BeautifulSoup) -> Optional[Tag]:
     if isinstance(header, Tag):
         return header
     return None
+
+
+def _clean_title_candidate(text: str) -> Optional[str]:
+    candidate = _normalize_whitespace(text)
+    if not candidate:
+        return None
+
+    lowered = candidate.lower()
+    if DESCRIPTION_HEADING in lowered:
+        return None
+
+    candidate = YEAR_PAREN_PATTERN.sub("", candidate)
+    candidate = MEDIUM_TRAILING_PATTERN.sub("", candidate)
+    candidate = BY_FRAGMENT_PATTERN.sub("", candidate)
+    candidate = candidate.strip(" -–|:,")
+    candidate = _normalize_whitespace(candidate)
+    return candidate or None
 
 
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
@@ -49,14 +98,21 @@ def _extract_title(soup: BeautifulSoup) -> Optional[str]:
 
     candidate_headers: Iterable[Tag] = soup.find_all(["h1", "h2"])
     for header in candidate_headers:
-        text = header.get_text(strip=True)
-        if TITLE_ARTIST in text.lower():
-            prefix = text.split(" by ", 1)[0]
-            prefix = YEAR_PAREN_PATTERN.sub("", prefix)
-            prefix = MEDIUM_TRAILING_PATTERN.sub("", prefix).strip()
-            cleaned = _normalize_whitespace(prefix)
-            if cleaned:
-                return cleaned
+        text = header.get_text(" ", strip=True)
+        cleaned = _clean_title_candidate(text)
+        if cleaned:
+            return cleaned
+
+    meta_tag = soup.find("meta", attrs={"property": "og:title"})
+    if meta_tag and meta_tag.get("content"):
+        cleaned = _clean_title_candidate(meta_tag["content"])
+        if cleaned:
+            return cleaned
+
+    if soup.title and soup.title.string:
+        cleaned = _clean_title_candidate(soup.title.string)
+        if cleaned:
+            return cleaned
     return None
 
 
@@ -122,7 +178,7 @@ def _parse_artwork_description_section(
     if not paragraphs:
         return None, None
 
-    description_text = paragraphs[0]
+    description_text = _truncate_description_text(paragraphs[0])
     materials_text = paragraphs[1] if len(paragraphs) > 1 else None
     return description_text, materials_text
 
@@ -130,7 +186,9 @@ def _parse_artwork_description_section(
 def _extract_description(soup: BeautifulSoup) -> Optional[str]:
     description_text, _ = _parse_artwork_description_section(soup)
     if description_text:
-        return description_text
+        truncated = _truncate_description_text(description_text)
+        if truncated:
+            return truncated
 
     heading_candidates = soup.find_all(
         string=re.compile(DESCRIPTION_HEADING, re.IGNORECASE)
@@ -165,7 +223,10 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
             para for para in (_normalize_whitespace(p) for p in paragraphs) if para
         ]
         if cleaned_paragraphs:
-            return "\n\n".join(cleaned_paragraphs)
+            joined = "\n\n".join(cleaned_paragraphs)
+            truncated = _truncate_description_text(joined)
+            if truncated:
+                return truncated
     return None
 
 
