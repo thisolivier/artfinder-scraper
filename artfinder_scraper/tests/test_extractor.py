@@ -34,7 +34,7 @@ def test_extract_artwork_fields_for_available_item() -> None:
     assert fields == {
         "title": "A Windswept Walk",
         "description": (
-            "This windswept walk captures the energy of the coastline.\n\n"
+            "This windswept walk captures the energy of the coastline. "
             "Layers of oil paint bring movement to the clouds and surf."
         ),
         "price_text": "£475",
@@ -93,3 +93,27 @@ def test_extract_size_when_value_is_embedded_in_label_span() -> None:
     fields = extract_artwork_fields(html, "https://www.artfinder.com/product/size-study/")
 
     assert fields["size"] == "50 x 60 cm (framed)"
+
+
+def test_description_converts_literal_newline_sequences() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <section class="hero">
+            <h1>Example Piece (2024) Oil painting by Lizzie Butler</h1>
+          </section>
+          <article>
+            <h2>Original artwork description</h2>
+            <div>
+              <p>Line one\\nLine two\\n\\nLine three</p>
+            </div>
+          </article>
+        </main>
+      </body>
+    </html>
+    """
+
+    fields = extract_artwork_fields(html, "https://www.artfinder.com/product/example/")
+
+    assert fields["description"] == "Line one\nLine two\n\nLine three"

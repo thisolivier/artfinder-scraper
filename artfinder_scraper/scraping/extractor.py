@@ -51,6 +51,16 @@ def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _apply_description_line_break_rules(text: str) -> str:
+    """Remove existing line breaks while honoring explicit ``"\n"`` markers."""
+
+    without_line_breaks = text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
+    collapsed_whitespace = re.sub(r"\s+", " ", without_line_breaks).strip()
+    restored_line_breaks = collapsed_whitespace.replace("\\n", "\n")
+    normalized_line_break_spacing = re.sub(r"[ \t]*\n[ \t]*", "\n", restored_line_breaks)
+    return normalized_line_break_spacing.strip()
+
+
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
     candidate_headers: Iterable[Tag] = soup.find_all(["h1", "h2"])
     for header in candidate_headers:
@@ -94,7 +104,8 @@ def _extract_description(soup: BeautifulSoup) -> Optional[str]:
                     paragraphs.extend(_collect_text_nodes(sibling.find_all("p")) or [_normalize_whitespace(sibling.get_text(" ", strip=True))])
         cleaned_paragraphs = [para for para in (_normalize_whitespace(p) for p in paragraphs) if para]
         if cleaned_paragraphs:
-            return "\n\n".join(cleaned_paragraphs)
+            combined = " ".join(cleaned_paragraphs)
+            return _apply_description_line_break_rules(combined)
     return None
 
 
