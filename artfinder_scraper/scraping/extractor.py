@@ -256,13 +256,37 @@ def _extract_materials_used(soup: BeautifulSoup) -> Optional[str]:
 
 
 def _extract_price_text(soup: BeautifulSoup) -> Optional[str]:
-    currency_pattern = re.compile(r"£\s*[0-9][0-9,]*", re.IGNORECASE)
-    for element in soup.find_all(string=currency_pattern):
+    currency_anywhere_pattern = re.compile(
+        r"[£€$]\s*[0-9][0-9,]*(?:\.[0-9]{2})?",
+        re.IGNORECASE,
+    )
+    currency_at_start_pattern = re.compile(
+        r"^[£€$]\s*[0-9][0-9,]*(?:\.[0-9]{2})?",
+        re.IGNORECASE,
+    )
+
+    product_original_container = soup.find("div", id="product-original")
+    if product_original_container:
+        price_spans = product_original_container.find_all(
+            "span", class_="header-art"
+        )
+        for price_span in price_spans:
+            price_text = _normalize_whitespace(
+                price_span.get_text(" ", strip=True)
+            )
+            if not price_text:
+                continue
+            match = currency_at_start_pattern.match(price_text)
+            if match:
+                normalized_price = match.group(0).replace(" ", "")
+                if normalized_price:
+                    return normalized_price
+
+    for element in soup.find_all(string=currency_anywhere_pattern):
         text = _normalize_whitespace(element)
         if text:
-            match = currency_pattern.search(text)
+            match = currency_anywhere_pattern.search(text)
             if match:
-                # Return the full matched currency expression (e.g., £475)
                 return match.group(0).replace(" ", "")
     return None
 
